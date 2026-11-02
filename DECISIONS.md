@@ -1,0 +1,25 @@
+# Decisions
+
+Small choices made during the build, with the reason for each. Newest last.
+
+| Date | Decision | Why |
+|---|---|---|
+| 2026-11-02 | **Data: Chinook** (digital music store: customers, invoices, invoice lines, tracks, sales reps), MIT licence, from github.com/lerocha/chinook-database | A real sales schema with joins, dates and money, and a clear permissive licence. Northwind's SQLite ports carry less clear licensing. |
+| 2026-11-02 | Drop street addresses, postal codes, phone, fax, email and birth dates from the shipped database (`scripts/build_db.py`, upstream file pinned by SHA-256) | No contact details anywhere in the repo, even fictitious ones. City, state and country stay for geographic questions. |
+| 2026-11-02 | "Today" is the last invoice date, 2025-12-22 | The data ends there; relative periods ("last quarter", "active customer") need a fixed anchor so answers are reproducible. |
+| 2026-11-02 | **Glossary retrieval is BM25** over 30 entries, not embeddings | Free, deterministic and testable; at this size keyword retrieval finds the right entry (see `tests/test_glossary_router_chart.py`). An embedding index can replace it behind `Glossary.search()`. |
+| 2026-11-02 | **Same settings on every model:** adaptive thinking, `effort: medium`, `max_tokens` 8,000, up to 8 calls per question | The benchmark compares models, not settings. Medium is the default on Haiku 5.5 and Opus 5.5; Sonnet 5.5 defaults to high, so it is set explicitly. |
+| 2026-11-02 | `tool_choice` left at auto; tools use `strict: true`; a `final_answer` tool carries the answer, SQL and chart choice | Forced tool choice returns a 400 on Opus 5.5 and Sonnet 5.5. Strict schemas keep tool inputs valid. |
+| 2026-11-02 | No server-side refusal fallback | A fallback would answer with a different model and blur per-model numbers. A refusal is recorded as an error. |
+| 2026-11-02 | **Caching:** one breakpoint on the system prompt (tools + instructions + schema, about 2,000 tokens) plus top-level automatic caching for the growing conversation; 5-minute TTL | The documented pattern for agent loops. Benchmark questions run back to back, so the 5-minute cache stays warm. |
+| 2026-11-02 | **Escalation:** a keyword router sends hard questions straight to Sonnet 5.5; Haiku 5.5's conversation restarts on Sonnet 5.5 if its first SQL fails, it runs out of turns or stops without SQL | Cheap by default, stronger model only when needed. The router is free (no extra API call). |
+| 2026-11-02 | The benchmark pins each model (no escalation); "auto" is a separate, optional row | Clean per-model accuracy, cost and latency. |
+| 2026-11-02 | **Execution-based grading:** the agent's final SQL is re-run and its result compared with the gold query's result (column order, names, extra columns, split first/last names and number formatting are tolerated) | Deterministic and free, unlike an LLM judge. Limit: the prose answer itself is not graded. |
+| 2026-11-02 | Ambiguous questions count as correct only if the agent asks a clarifying question **and** answers correctly after the scripted reply. If it asks on a clear question, it gets a neutral reply and the extra question is counted | Measures both halves: asking when needed and not asking when not. |
+| 2026-11-02 | Guardrail limits: 200 rows returned, 50 shown to the model, 5 s query timeout, 10,000-character SQL | Enough for any business answer; keeps prompts small and runaway queries short. |
+| 2026-11-02 | Charts are server-side SVG with no JavaScript library | No CDN dependency, nothing to load from third parties, works the same in the web page and the CLI. |
+| 2026-11-02 | The API key is read only from `ASKDATA_ANTHROPIC_KEY`, only in `agent.make_client()`; no `.env` loader | One place to audit. `ANTHROPIC_API_KEY` is never read or set. |
+| 2026-11-02 | **Spend controls:** every call logged to `runs/costs.csv`; a worst-case check before each call refuses anything that could pass $85 in total; per-run caps; paid benchmark runs need `--confirm-spend` and stop at 3 Nov 2026 23:00 IST | The API credits are limited and expire; spending must be impossible by accident. |
+| 2026-11-02 | Benchmark runs questions one at a time, not through the Batch API | Latency is one of the measured results, and the agent is a multi-turn tool loop. |
+| 2026-11-02 | MCP server built on the official `mcp` SDK 2.x (`MCPServer`, stdio); tested over stdio with the legacy initialize handshake | That is how Claude Desktop launches local servers. |
+| 2026-11-02 | Profile and portfolio drafts are kept outside this public repo | This repo is public; drafts are not. |
