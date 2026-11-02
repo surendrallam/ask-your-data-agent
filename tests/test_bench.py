@@ -89,3 +89,41 @@ def test_repo_has_no_secrets_contacts_or_default_key_var():
         assert not pattern.search(text), f"secret or contact detail in {path}"
     src = "\n".join(p.read_text() for p in (ROOT / "src").rglob("*.py"))
     assert "ANTHROPIC_API_KEY" not in src  # the app reads only ASKDATA_ANTHROPIC_KEY
+
+
+E12_ROWS = [["MPEG audio file", 3034], ["Protected AAC audio file", 237], ["Protected MPEG-4 video file", 214],
+            ["AAC audio file", 11], ["Purchased AAC audio file", 7]]
+
+
+def test_corrected_rules_fix_real_false_fails_and_keep_strict_unchanged():
+    e12, e17 = by_id("E12"), by_id("E17")
+    text = "The catalog has 214 video tracks; the other 3,289 tracks are audio."
+    assert not grade(e12, EXP["E12"]["rows"], E12_ROWS, text)[0]  # strict is the default
+    assert grade(e12, EXP["E12"]["rows"], E12_ROWS, text, strict=False)[0]
+    with_zero_rows = [r + ["Sales Support Agent"] for r in EXP["E17"]["rows"]] + [["Andrew Adams", 0, "General Manager"]]
+    assert not grade(e17, EXP["E17"]["rows"], with_zero_rows)[0]
+    assert grade(e17, EXP["E17"]["rows"], with_zero_rows, strict=False)[0]
+
+
+def test_corrected_rules_still_reject_wrong_answers():
+    e12 = by_id("E12")
+    assert not grade(e12, EXP["E12"]["rows"], E12_ROWS, "There are 237 video tracks.", strict=False)[0]
+    assert not grade(e12, EXP["E12"]["rows"], [["a", 1], ["b", 2]], "There are 214 video tracks.", strict=False)[0]
+    e17 = by_id("E17")
+    extra_nonzero = EXP["E17"]["rows"] + [["Andrew Adams", 1]]
+    assert not grade(e17, EXP["E17"]["rows"], extra_nonzero, strict=False)[0]
+    m01 = by_id("M01")  # ordered rankings get no extra-row allowance
+    assert not grade(m01, EXP["M01"]["rows"], EXP["M01"]["rows"] + [["Nowhere", 0]], strict=False)[0]
+
+
+def test_regrade_reruns_the_stored_sql(tmp_path):
+    from bench.regrade import regrade_dir
+
+    sql = ("SELECT mt.Name, COUNT(*) AS n FROM Track t JOIN MediaType mt ON mt.MediaTypeId = t.MediaTypeId "
+           "GROUP BY mt.Name ORDER BY n DESC")
+    rec = {"id": "E12", "model": "haiku", "difficulty": "easy", "status": "answer", "sql": sql,
+           "answer": "There are 214 video tracks.", "asked_clarification": False, "rows": []}
+    (tmp_path / "results.jsonl").write_text(json.dumps(rec) + "\n")
+    g = regrade_dir(tmp_path)[0]
+    assert g["correct_strict"] is False and g["correct"] is True
+    assert (tmp_path / "graded.jsonl").exists()
