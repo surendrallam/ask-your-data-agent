@@ -59,3 +59,10 @@ def test_no_chart_for_scalar_or_text_only():
 def test_chart_labels_are_escaped():
     svg = chart.render_svg(["label", "v"], [["<script>alert(1)</script>", 1], ["b&c", 2]])
     assert "<script>" not in svg and "&lt;script&gt;" in svg and "b&amp;c" in svg
+
+
+def test_bar_labels_are_not_cut_when_there_is_room():
+    svg = chart.render_svg(["region", "revenue"], [["North America", 170.55], ["Asia", 10.89]], width=786)
+    assert ">North America<" in svg and "…" not in svg
+    narrow = chart.render_svg(["name", "v"], [["A very long customer name indeed", 1], ["B", 2]], width=320)
+    assert "…" in narrow  # long labels are still shortened on a phone-width chart
