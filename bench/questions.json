@@ -1,0 +1,394 @@
+{
+  "description": "50 questions with gold SQL. Expected answers are computed from data/chinook.sqlite by bench/build_expected.py.",
+  "questions": [
+    {
+      "id": "E01",
+      "difficulty": "easy",
+      "question": "How many customers do we have?",
+      "gold_sql": "SELECT COUNT(*) AS customers FROM Customer",
+      "match": "scalar"
+    },
+    {
+      "id": "E02",
+      "difficulty": "easy",
+      "question": "How many tracks are in the catalog?",
+      "gold_sql": "SELECT COUNT(*) AS tracks FROM Track",
+      "match": "scalar"
+    },
+    {
+      "id": "E03",
+      "difficulty": "easy",
+      "question": "What is our total revenue across all years?",
+      "gold_sql": "SELECT ROUND(SUM(Total), 2) AS revenue FROM Invoice",
+      "match": "scalar"
+    },
+    {
+      "id": "E04",
+      "difficulty": "easy",
+      "question": "What was total revenue in 2025?",
+      "gold_sql": "SELECT ROUND(SUM(Total), 2) AS revenue FROM Invoice WHERE strftime('%Y', InvoiceDate) = '2025'",
+      "match": "scalar"
+    },
+    {
+      "id": "E05",
+      "difficulty": "easy",
+      "question": "How many invoices were issued in 2023?",
+      "gold_sql": "SELECT COUNT(*) AS invoices FROM Invoice WHERE strftime('%Y', InvoiceDate) = '2023'",
+      "match": "scalar"
+    },
+    {
+      "id": "E06",
+      "difficulty": "easy",
+      "question": "How many customers are based in Brazil?",
+      "gold_sql": "SELECT COUNT(*) AS customers FROM Customer WHERE Country = 'Brazil'",
+      "match": "scalar"
+    },
+    {
+      "id": "E07",
+      "difficulty": "easy",
+      "question": "How many artists are in the database?",
+      "gold_sql": "SELECT COUNT(*) AS artists FROM Artist",
+      "match": "scalar"
+    },
+    {
+      "id": "E08",
+      "difficulty": "easy",
+      "question": "How many genres are in the catalog?",
+      "gold_sql": "SELECT COUNT(*) AS genres FROM Genre",
+      "match": "scalar"
+    },
+    {
+      "id": "E09",
+      "difficulty": "easy",
+      "question": "What is our average order value?",
+      "gold_sql": "SELECT ROUND(AVG(Total), 2) AS aov FROM Invoice",
+      "match": "scalar"
+    },
+    {
+      "id": "E10",
+      "difficulty": "easy",
+      "question": "List the employees whose title is Sales Support Agent.",
+      "gold_sql": "SELECT FirstName || ' ' || LastName AS name FROM Employee WHERE Title = 'Sales Support Agent'",
+      "match": "rows"
+    },
+    {
+      "id": "E11",
+      "difficulty": "easy",
+      "question": "Which country has the most customers?",
+      "gold_sql": "SELECT Country FROM Customer GROUP BY Country ORDER BY COUNT(*) DESC LIMIT 1",
+      "match": "scalar"
+    },
+    {
+      "id": "E12",
+      "difficulty": "easy",
+      "question": "How many video tracks are in the catalog?",
+      "gold_sql": "SELECT COUNT(*) AS video_tracks FROM Track t JOIN MediaType m ON m.MediaTypeId = t.MediaTypeId WHERE m.Name LIKE '%video%'",
+      "match": "scalar"
+    },
+    {
+      "id": "E13",
+      "difficulty": "easy",
+      "question": "What is the longest track in the catalog?",
+      "gold_sql": "SELECT Name FROM Track ORDER BY Milliseconds DESC LIMIT 1",
+      "match": "scalar"
+    },
+    {
+      "id": "E14",
+      "difficulty": "easy",
+      "question": "How many albums does Iron Maiden have?",
+      "gold_sql": "SELECT COUNT(*) AS albums FROM Album al JOIN Artist ar ON ar.ArtistId = al.ArtistId WHERE ar.Name = 'Iron Maiden'",
+      "match": "scalar"
+    },
+    {
+      "id": "E15",
+      "difficulty": "easy",
+      "question": "What was the largest single invoice total?",
+      "gold_sql": "SELECT MAX(Total) AS largest FROM Invoice",
+      "match": "scalar"
+    },
+    {
+      "id": "E16",
+      "difficulty": "easy",
+      "question": "Show total revenue for each year.",
+      "gold_sql": "SELECT strftime('%Y', InvoiceDate) AS year, ROUND(SUM(Total), 2) AS revenue FROM Invoice GROUP BY year ORDER BY year",
+      "match": "rows"
+    },
+    {
+      "id": "E17",
+      "difficulty": "easy",
+      "question": "How many customers does each sales rep support?",
+      "gold_sql": "SELECT e.FirstName || ' ' || e.LastName AS rep, COUNT(*) AS customers FROM Customer c JOIN Employee e ON e.EmployeeId = c.SupportRepId GROUP BY e.EmployeeId",
+      "match": "rows"
+    },
+    {
+      "id": "E18",
+      "difficulty": "easy",
+      "question": "How many corporate customers do we have?",
+      "gold_sql": "SELECT COUNT(*) AS corporate_customers FROM Customer WHERE Company IS NOT NULL",
+      "match": "scalar"
+    },
+    {
+      "id": "M01",
+      "difficulty": "medium",
+      "question": "Which 5 countries brought in the most revenue in 2025?",
+      "gold_sql": "SELECT BillingCountry AS country, ROUND(SUM(Total), 2) AS revenue FROM Invoice WHERE strftime('%Y', InvoiceDate) = '2025' GROUP BY BillingCountry ORDER BY revenue DESC LIMIT 5",
+      "match": "ordered",
+      "compare_columns": [
+        0
+      ]
+    },
+    {
+      "id": "M02",
+      "difficulty": "medium",
+      "question": "What are the top 5 best-selling genres?",
+      "gold_sql": "SELECT g.Name AS genre, COUNT(*) AS units FROM InvoiceLine il JOIN Track t ON t.TrackId = il.TrackId JOIN Genre g ON g.GenreId = t.GenreId GROUP BY g.GenreId ORDER BY units DESC LIMIT 5",
+      "match": "ordered",
+      "compare_columns": [
+        0
+      ]
+    },
+    {
+      "id": "M03",
+      "difficulty": "medium",
+      "question": "How many active customers do we have?",
+      "gold_sql": "SELECT COUNT(DISTINCT CustomerId) AS active_customers FROM Invoice WHERE InvoiceDate >= '2025-06-22'",
+      "match": "scalar"
+    },
+    {
+      "id": "M04",
+      "difficulty": "medium",
+      "question": "What was revenue last quarter?",
+      "gold_sql": "SELECT ROUND(SUM(Total), 2) AS revenue FROM Invoice WHERE InvoiceDate >= '2025-07-01' AND InvoiceDate < '2025-10-01'",
+      "match": "scalar"
+    },
+    {
+      "id": "M05",
+      "difficulty": "medium",
+      "question": "Which sales rep's customers generated the most revenue?",
+      "gold_sql": "SELECT e.FirstName || ' ' || e.LastName AS rep FROM Employee e JOIN Customer c ON c.SupportRepId = e.EmployeeId JOIN Invoice i ON i.CustomerId = c.CustomerId GROUP BY e.EmployeeId ORDER BY SUM(i.Total) DESC LIMIT 1",
+      "match": "scalar"
+    },
+    {
+      "id": "M06",
+      "difficulty": "medium",
+      "question": "What was total revenue by region in 2024?",
+      "gold_sql": "SELECT CASE WHEN BillingCountry IN ('USA','Canada') THEN 'North America' WHEN BillingCountry IN ('Brazil','Argentina','Chile') THEN 'South America' WHEN BillingCountry = 'India' THEN 'Asia' WHEN BillingCountry = 'Australia' THEN 'Oceania' ELSE 'Europe' END AS region, ROUND(SUM(Total), 2) AS revenue FROM Invoice WHERE strftime('%Y', InvoiceDate) = '2024' GROUP BY region",
+      "match": "rows"
+    },
+    {
+      "id": "M07",
+      "difficulty": "medium",
+      "question": "Who are our VIP customers?",
+      "gold_sql": "SELECT c.FirstName || ' ' || c.LastName AS customer FROM Customer c JOIN Invoice i ON i.CustomerId = c.CustomerId GROUP BY c.CustomerId HAVING SUM(i.Total) >= 45",
+      "match": "rows"
+    },
+    {
+      "id": "M08",
+      "difficulty": "medium",
+      "question": "Which 3 artists have the most tracks in the catalog?",
+      "gold_sql": "SELECT ar.Name AS artist, COUNT(*) AS tracks FROM Track t JOIN Album al ON al.AlbumId = t.AlbumId JOIN Artist ar ON ar.ArtistId = al.ArtistId GROUP BY ar.ArtistId ORDER BY tracks DESC LIMIT 3",
+      "match": "ordered",
+      "compare_columns": [
+        0
+      ]
+    },
+    {
+      "id": "M09",
+      "difficulty": "medium",
+      "question": "What is the average track length in minutes for each media type?",
+      "gold_sql": "SELECT m.Name AS media_type, ROUND(AVG(t.Milliseconds) / 60000.0, 2) AS avg_minutes FROM Track t JOIN MediaType m ON m.MediaTypeId = t.MediaTypeId GROUP BY m.MediaTypeId",
+      "match": "rows"
+    },
+    {
+      "id": "M10",
+      "difficulty": "medium",
+      "question": "How many tracks have never been sold?",
+      "gold_sql": "SELECT COUNT(*) AS unsold FROM Track t WHERE NOT EXISTS (SELECT 1 FROM InvoiceLine il WHERE il.TrackId = t.TrackId)",
+      "match": "scalar"
+    },
+    {
+      "id": "M11",
+      "difficulty": "medium",
+      "question": "What was revenue for each month of 2024?",
+      "gold_sql": "SELECT strftime('%m', InvoiceDate) AS month, ROUND(SUM(Total), 2) AS revenue FROM Invoice WHERE strftime('%Y', InvoiceDate) = '2024' GROUP BY month ORDER BY month",
+      "match": "ordered",
+      "compare_columns": [
+        1
+      ]
+    },
+    {
+      "id": "M12",
+      "difficulty": "medium",
+      "question": "What share of total revenue comes from the USA?",
+      "gold_sql": "SELECT ROUND(SUM(CASE WHEN BillingCountry = 'USA' THEN Total ELSE 0 END) * 100.0 / SUM(Total), 1) AS usa_share_pct FROM Invoice",
+      "match": "scalar",
+      "tol": 0.05,
+      "percent": true
+    },
+    {
+      "id": "M13",
+      "difficulty": "medium",
+      "question": "Which album has the most tracks?",
+      "gold_sql": "SELECT al.Title FROM Album al JOIN Track t ON t.AlbumId = al.AlbumId GROUP BY al.AlbumId ORDER BY COUNT(*) DESC LIMIT 1",
+      "match": "scalar"
+    },
+    {
+      "id": "M14",
+      "difficulty": "medium",
+      "question": "What is the average order value for customers in Germany?",
+      "gold_sql": "SELECT ROUND(AVG(i.Total), 2) AS aov FROM Invoice i JOIN Customer c ON c.CustomerId = i.CustomerId WHERE c.Country = 'Germany'",
+      "match": "scalar"
+    },
+    {
+      "id": "M15",
+      "difficulty": "medium",
+      "question": "How many new customers did we gain in 2022?",
+      "gold_sql": "SELECT COUNT(*) AS new_customers FROM (SELECT CustomerId, MIN(InvoiceDate) AS first_invoice FROM Invoice GROUP BY CustomerId) WHERE strftime('%Y', first_invoice) = '2022'",
+      "match": "scalar"
+    },
+    {
+      "id": "M16",
+      "difficulty": "medium",
+      "question": "Who reports directly to Nancy Edwards?",
+      "gold_sql": "SELECT e.FirstName || ' ' || e.LastName AS name FROM Employee e JOIN Employee m ON m.EmployeeId = e.ReportsTo WHERE m.FirstName = 'Nancy' AND m.LastName = 'Edwards'",
+      "match": "rows"
+    },
+    {
+      "id": "H01",
+      "difficulty": "hard",
+      "question": "By what percentage did revenue grow or shrink from 2024 to 2025?",
+      "gold_sql": "SELECT ROUND((SUM(CASE WHEN strftime('%Y', InvoiceDate) = '2025' THEN Total END) - SUM(CASE WHEN strftime('%Y', InvoiceDate) = '2024' THEN Total END)) * 100.0 / SUM(CASE WHEN strftime('%Y', InvoiceDate) = '2024' THEN Total END), 1) AS growth_pct FROM Invoice",
+      "match": "values",
+      "tol": 0.05,
+      "percent": true
+    },
+    {
+      "id": "H02",
+      "difficulty": "hard",
+      "question": "For each region, which genre sold the most units in 2025?",
+      "gold_sql": "WITH x AS (SELECT CASE WHEN i.BillingCountry IN ('USA','Canada') THEN 'North America' WHEN i.BillingCountry IN ('Brazil','Argentina','Chile') THEN 'South America' WHEN i.BillingCountry = 'India' THEN 'Asia' WHEN i.BillingCountry = 'Australia' THEN 'Oceania' ELSE 'Europe' END AS region, g.Name AS genre, COUNT(*) AS units FROM Invoice i JOIN InvoiceLine il ON il.InvoiceId = i.InvoiceId JOIN Track t ON t.TrackId = il.TrackId JOIN Genre g ON g.GenreId = t.GenreId WHERE strftime('%Y', i.InvoiceDate) = '2025' GROUP BY region, genre) SELECT region, genre FROM x WHERE units = (SELECT MAX(units) FROM x x2 WHERE x2.region = x.region)",
+      "match": "rows"
+    },
+    {
+      "id": "H03",
+      "difficulty": "hard",
+      "question": "Which customers have bought tracks from more than 10 different genres?",
+      "gold_sql": "SELECT c.FirstName || ' ' || c.LastName AS customer FROM Customer c JOIN Invoice i ON i.CustomerId = c.CustomerId JOIN InvoiceLine il ON il.InvoiceId = i.InvoiceId JOIN Track t ON t.TrackId = il.TrackId GROUP BY c.CustomerId HAVING COUNT(DISTINCT t.GenreId) > 10",
+      "match": "rows"
+    },
+    {
+      "id": "H04",
+      "difficulty": "hard",
+      "question": "Which sales rep has the highest average order value across their customers' invoices?",
+      "gold_sql": "SELECT e.FirstName || ' ' || e.LastName AS rep FROM Employee e JOIN Customer c ON c.SupportRepId = e.EmployeeId JOIN Invoice i ON i.CustomerId = c.CustomerId GROUP BY e.EmployeeId ORDER BY AVG(i.Total) DESC LIMIT 1",
+      "match": "scalar"
+    },
+    {
+      "id": "H05",
+      "difficulty": "hard",
+      "question": "What percentage of revenue comes from video tracks?",
+      "gold_sql": "SELECT ROUND(SUM(CASE WHEN m.Name LIKE '%video%' THEN il.UnitPrice * il.Quantity ELSE 0 END) * 100.0 / SUM(il.UnitPrice * il.Quantity), 1) AS video_share_pct FROM InvoiceLine il JOIN Track t ON t.TrackId = il.TrackId JOIN MediaType m ON m.MediaTypeId = t.MediaTypeId",
+      "match": "values",
+      "tol": 0.05,
+      "percent": true
+    },
+    {
+      "id": "H06",
+      "difficulty": "hard",
+      "question": "How many customers made at least one purchase in every year from 2021 to 2025?",
+      "gold_sql": "SELECT COUNT(*) AS customers FROM (SELECT CustomerId FROM Invoice WHERE strftime('%Y', InvoiceDate) BETWEEN '2021' AND '2025' GROUP BY CustomerId HAVING COUNT(DISTINCT strftime('%Y', InvoiceDate)) = 5)",
+      "match": "scalar"
+    },
+    {
+      "id": "H07",
+      "difficulty": "hard",
+      "question": "Which 2 lapsed customers have the highest lifetime value?",
+      "gold_sql": "SELECT c.FirstName || ' ' || c.LastName AS customer, ROUND(SUM(i.Total), 2) AS lifetime_value FROM Customer c JOIN Invoice i ON i.CustomerId = c.CustomerId WHERE c.CustomerId NOT IN (SELECT CustomerId FROM Invoice WHERE InvoiceDate >= '2025-06-22') GROUP BY c.CustomerId ORDER BY lifetime_value DESC LIMIT 2",
+      "match": "ordered",
+      "compare_columns": [
+        0
+      ]
+    },
+    {
+      "id": "H08",
+      "difficulty": "hard",
+      "question": "Which month of 2025 had the highest revenue, and how far above the 2025 monthly average was it?",
+      "gold_sql": "WITH m AS (SELECT strftime('%m', InvoiceDate) AS month, SUM(Total) AS revenue FROM Invoice WHERE strftime('%Y', InvoiceDate) = '2025' GROUP BY month) SELECT month, ROUND(revenue, 2) AS revenue, ROUND(revenue - (SELECT AVG(revenue) FROM m), 2) AS above_average FROM m ORDER BY revenue DESC LIMIT 1",
+      "match": "values",
+      "compare_columns": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "A01",
+      "difficulty": "ambiguous",
+      "question": "Who is our best customer?",
+      "gold_sql": "SELECT c.FirstName || ' ' || c.LastName AS customer FROM Customer c JOIN Invoice i ON i.CustomerId = c.CustomerId GROUP BY c.CustomerId ORDER BY SUM(i.Total) DESC LIMIT 1",
+      "match": "scalar",
+      "clarification_reply": "The customer with the highest total revenue, all time."
+    },
+    {
+      "id": "A02",
+      "difficulty": "ambiguous",
+      "question": "Which genre performs best?",
+      "gold_sql": "SELECT g.Name FROM InvoiceLine il JOIN Track t ON t.TrackId = il.TrackId JOIN Genre g ON g.GenreId = t.GenreId GROUP BY g.GenreId ORDER BY SUM(il.UnitPrice * il.Quantity) DESC LIMIT 1",
+      "match": "scalar",
+      "clarification_reply": "By revenue, all time."
+    },
+    {
+      "id": "A03",
+      "difficulty": "ambiguous",
+      "question": "Show me our top artists.",
+      "gold_sql": "SELECT ar.Name AS artist, ROUND(SUM(il.UnitPrice * il.Quantity), 2) AS revenue FROM InvoiceLine il JOIN Track t ON t.TrackId = il.TrackId JOIN Album al ON al.AlbumId = t.AlbumId JOIN Artist ar ON ar.ArtistId = al.ArtistId GROUP BY ar.ArtistId ORDER BY revenue DESC LIMIT 5",
+      "match": "ordered",
+      "compare_columns": [
+        0
+      ],
+      "clarification_reply": "The top 5 by revenue, all time."
+    },
+    {
+      "id": "A04",
+      "difficulty": "ambiguous",
+      "question": "Who is the best sales rep?",
+      "gold_sql": "SELECT e.FirstName || ' ' || e.LastName AS rep FROM Employee e JOIN Customer c ON c.SupportRepId = e.EmployeeId GROUP BY e.EmployeeId ORDER BY COUNT(*) DESC LIMIT 1",
+      "match": "scalar",
+      "clarification_reply": "The rep who supports the most customers."
+    },
+    {
+      "id": "A05",
+      "difficulty": "ambiguous",
+      "question": "What's our biggest album?",
+      "gold_sql": "SELECT al.Title FROM Album al JOIN Track t ON t.AlbumId = al.AlbumId GROUP BY al.AlbumId ORDER BY SUM(t.Milliseconds) DESC LIMIT 1",
+      "match": "scalar",
+      "clarification_reply": "The album with the longest total running time."
+    },
+    {
+      "id": "A06",
+      "difficulty": "ambiguous",
+      "question": "How did sales change?",
+      "gold_sql": "SELECT strftime('%Y', InvoiceDate) AS year, ROUND(SUM(Total), 2) AS revenue FROM Invoice WHERE strftime('%Y', InvoiceDate) IN ('2024', '2025') GROUP BY year",
+      "match": "values",
+      "compare_columns": [
+        1
+      ],
+      "clarification_reply": "Show total revenue for 2024 and for 2025."
+    },
+    {
+      "id": "A07",
+      "difficulty": "ambiguous",
+      "question": "Which country is our top market?",
+      "gold_sql": "SELECT Country FROM Customer GROUP BY Country ORDER BY COUNT(*) DESC LIMIT 1",
+      "match": "scalar",
+      "clarification_reply": "The country with the most customers."
+    },
+    {
+      "id": "A08",
+      "difficulty": "ambiguous",
+      "question": "How are we doing in Europe?",
+      "gold_sql": "SELECT ROUND(SUM(Total), 2) AS revenue FROM Invoice WHERE strftime('%Y', InvoiceDate) = '2025' AND BillingCountry NOT IN ('USA','Canada','Brazil','Argentina','Chile','India','Australia')",
+      "match": "scalar",
+      "clarification_reply": "Total revenue from Europe in 2025."
+    }
+  ]
+}
