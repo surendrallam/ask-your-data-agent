@@ -56,3 +56,12 @@ In order of value:
 1. Copy the first table from `bench/results/<tag>/summary.md` into the README's results section with one line on the method and the date.
 2. Read the misses in `results.jsonl` (`passed: false`) and summarize the patterns in two or three bullets.
 3. Commit `bench/results/<tag>/` (results.jsonl, summary.json, summary.md).
+
+## 6. Demo video and README screenshots (about $0.10)
+
+```bash
+.venv/bin/askdata-web > /tmp/web.log 2>&1 &          # http://127.0.0.1:8000
+node scripts/demo.cjs http://127.0.0.1:8000 docs/media
+```
+
+This writes `docs/media/answer-1.png` to `answer-4.png` (real answers) and `demo.mp4` (about 2 minutes, captioned). Delete `demo.webm`, commit the PNGs and `demo.mp4` if it is under 20 MB, and add the screenshots to the README.
