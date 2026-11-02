@@ -103,12 +103,12 @@ class CostLedger:
 
     def __init__(
         self,
-        path: Path | str = config.COSTS_CSV,
-        budget_usd: float = config.BUDGET_USD,
+        path: Path | str | None = None,
+        budget_usd: float | None = None,
         run_budget_usd: float | None = None,
     ) -> None:
-        self.path = Path(path)
-        self.budget_usd = budget_usd
+        self.path = Path(path or config.COSTS_CSV)
+        self.budget_usd = config.BUDGET_USD if budget_usd is None else budget_usd
         self.run_budget_usd = run_budget_usd
         self._lock = threading.Lock()
         self.path.parent.mkdir(parents=True, exist_ok=True)
