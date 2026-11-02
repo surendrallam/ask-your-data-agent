@@ -1,0 +1,185 @@
+{
+  "as_of_date": "2025-12-22",
+  "entries": [
+    {
+      "term": "revenue",
+      "synonyms": ["sales", "income", "turnover", "takings", "gross sales", "money made", "earnings"],
+      "definition": "Money billed to customers. Sum of Invoice.Total (per invoice) or of InvoiceLine.UnitPrice * InvoiceLine.Quantity (per line); the two reconcile. Round money to 2 decimals.",
+      "sql": "ROUND(SUM(Invoice.Total), 2)  -- or ROUND(SUM(il.UnitPrice * il.Quantity), 2) when grouping by track, album, artist, genre or media type"
+    },
+    {
+      "term": "units sold",
+      "synonyms": ["tracks sold", "quantity sold", "copies sold", "downloads", "items sold", "volume"],
+      "definition": "Number of tracks sold. Every invoice line has Quantity 1, so this is the number of InvoiceLine rows.",
+      "sql": "SUM(il.Quantity)"
+    },
+    {
+      "term": "best-selling",
+      "synonyms": ["most popular", "best seller", "sells the most", "most purchased"],
+      "definition": "Ranked by units sold (number of tracks sold), not revenue. Use 'top-grossing' for revenue.",
+      "sql": "ORDER BY SUM(il.Quantity) DESC"
+    },
+    {
+      "term": "top-grossing",
+      "synonyms": ["highest revenue", "biggest earner", "makes the most money", "highest sales"],
+      "definition": "Ranked by revenue.",
+      "sql": "ORDER BY SUM(il.UnitPrice * il.Quantity) DESC"
+    },
+    {
+      "term": "top N default",
+      "synonyms": ["top", "leading", "biggest"],
+      "definition": "When the user asks for 'top' items with a clear metric but no number, show the top 5.",
+      "sql": "LIMIT 5"
+    },
+    {
+      "term": "order",
+      "synonyms": ["invoice", "purchase", "transaction", "sale", "basket", "checkout"],
+      "definition": "One row in Invoice. An invoice has one or more invoice lines (tracks).",
+      "sql": "COUNT(*) FROM Invoice"
+    },
+    {
+      "term": "average order value",
+      "synonyms": ["AOV", "average invoice", "average sale", "average purchase value", "average ticket"],
+      "definition": "Average of Invoice.Total over the invoices in scope, rounded to 2 decimals.",
+      "sql": "ROUND(AVG(Invoice.Total), 2)"
+    },
+    {
+      "term": "basket size",
+      "synonyms": ["items per order", "tracks per invoice", "lines per invoice"],
+      "definition": "Average number of invoice lines (tracks) per invoice.",
+      "sql": "ROUND(COUNT(il.InvoiceLineId) * 1.0 / COUNT(DISTINCT il.InvoiceId), 2)"
+    },
+    {
+      "term": "as-of date",
+      "synonyms": ["today", "now", "current date", "to date", "as of", "recent", "latest"],
+      "definition": "The data ends on 2025-12-22, the latest invoice date. Treat it as today for every relative period. This year = 2025, last year = 2024.",
+      "sql": "'2025-12-22'"
+    },
+    {
+      "term": "last quarter",
+      "synonyms": ["previous quarter", "most recent complete quarter", "prior quarter"],
+      "definition": "The most recent complete calendar quarter before the as-of date: Q3 2025 (2025-07-01 to 2025-09-30). 'This quarter' is Q4 2025 to date.",
+      "sql": "InvoiceDate >= '2025-07-01' AND InvoiceDate < '2025-10-01'"
+    },
+    {
+      "term": "quarter",
+      "synonyms": ["Q1", "Q2", "Q3", "Q4", "quarterly"],
+      "definition": "Calendar quarters: Q1 Jan-Mar, Q2 Apr-Jun, Q3 Jul-Sep, Q4 Oct-Dec.",
+      "sql": "(CAST(strftime('%m', InvoiceDate) AS INTEGER) + 2) / 3 AS quarter"
+    },
+    {
+      "term": "active customer",
+      "synonyms": ["active customers", "active user", "engaged customer", "current customer"],
+      "definition": "A customer with at least one invoice in the 6 months up to the as-of date, i.e. on or after 2025-06-22.",
+      "sql": "SELECT COUNT(DISTINCT CustomerId) FROM Invoice WHERE InvoiceDate >= '2025-06-22'"
+    },
+    {
+      "term": "lapsed customer",
+      "synonyms": ["churned customer", "inactive customer", "lost customer", "dormant customer"],
+      "definition": "A customer who is not active: no invoice on or after 2025-06-22.",
+      "sql": "CustomerId NOT IN (SELECT CustomerId FROM Invoice WHERE InvoiceDate >= '2025-06-22')"
+    },
+    {
+      "term": "customer lifetime value",
+      "synonyms": ["CLV", "LTV", "lifetime value", "total spend", "lifetime spend"],
+      "definition": "Total revenue from one customer across all their invoices.",
+      "sql": "SELECT CustomerId, ROUND(SUM(Total), 2) FROM Invoice GROUP BY CustomerId"
+    },
+    {
+      "term": "VIP customer",
+      "synonyms": ["VIP", "high-value customer", "big spender", "whale", "key account"],
+      "definition": "A customer whose lifetime value is at least $45.00.",
+      "sql": "HAVING SUM(Total) >= 45"
+    },
+    {
+      "term": "new customer",
+      "synonyms": ["acquired customer", "first-time buyer", "customer acquisition"],
+      "definition": "A customer counted in the period that holds their first invoice.",
+      "sql": "MIN(InvoiceDate) per CustomerId falls in the period"
+    },
+    {
+      "term": "corporate customer",
+      "synonyms": ["business customer", "B2B customer", "company customer", "enterprise customer"],
+      "definition": "A customer with a non-empty Customer.Company. Others are individual (consumer) customers.",
+      "sql": "Customer.Company IS NOT NULL"
+    },
+    {
+      "term": "sales rep",
+      "synonyms": ["support rep", "account manager", "sales support agent", "rep", "salesperson"],
+      "definition": "The employee in Customer.SupportRepId. A rep's sales are the revenue of the invoices of the customers they support.",
+      "sql": "JOIN Employee e ON e.EmployeeId = Customer.SupportRepId"
+    },
+    {
+      "term": "region",
+      "synonyms": ["continent", "territory", "North America", "Europe", "South America", "Asia", "Oceania", "EMEA", "LATAM"],
+      "definition": "North America: USA, Canada. South America: Brazil, Argentina, Chile. Asia: India. Oceania: Australia. Europe: every other country in the data (Austria, Belgium, Czech Republic, Denmark, Finland, France, Germany, Hungary, Ireland, Italy, Netherlands, Norway, Poland, Portugal, Spain, Sweden, United Kingdom). Use Invoice.BillingCountry for sales and Customer.Country for customers.",
+      "sql": "CASE WHEN Country IN ('USA','Canada') THEN 'North America' WHEN Country IN ('Brazil','Argentina','Chile') THEN 'South America' WHEN Country = 'India' THEN 'Asia' WHEN Country = 'Australia' THEN 'Oceania' ELSE 'Europe' END"
+    },
+    {
+      "term": "market",
+      "synonyms": ["country", "geography", "location"],
+      "definition": "A country. Sales by market use Invoice.BillingCountry; customers by market use Customer.Country.",
+      "sql": "GROUP BY Invoice.BillingCountry"
+    },
+    {
+      "term": "year-over-year growth",
+      "synonyms": ["YoY", "annual growth", "growth rate", "change vs last year"],
+      "definition": "Percentage change: (value in year Y - value in year Y-1) / value in year Y-1 * 100, rounded to 1 decimal.",
+      "sql": "ROUND((cur - prev) * 100.0 / prev, 1)"
+    },
+    {
+      "term": "share",
+      "synonyms": ["percentage of", "percent of", "proportion", "mix", "contribution"],
+      "definition": "Part divided by the total, times 100, rounded to 1 decimal.",
+      "sql": "ROUND(part * 100.0 / total, 1)"
+    },
+    {
+      "term": "video",
+      "synonyms": ["videos", "TV", "movies", "episodes", "audio", "media type"],
+      "definition": "A track whose MediaType.Name contains 'video' (Protected MPEG-4 video file). Every other media type is audio.",
+      "sql": "MediaType.Name LIKE '%video%'"
+    },
+    {
+      "term": "premium track",
+      "synonyms": ["price point", "premium", "standard track", "$1.99", "$0.99"],
+      "definition": "Track.UnitPrice 1.99 is premium; 0.99 is standard.",
+      "sql": "Track.UnitPrice = 1.99"
+    },
+    {
+      "term": "track length",
+      "synonyms": ["duration", "runtime", "length", "minutes", "long track", "song length"],
+      "definition": "Track.Milliseconds. Minutes = Milliseconds / 60000.0. A long track runs over 10 minutes (Milliseconds > 600000).",
+      "sql": "ROUND(Milliseconds / 60000.0, 2) AS minutes"
+    },
+    {
+      "term": "catalog",
+      "synonyms": ["catalogue", "library", "inventory", "range"],
+      "definition": "All rows in Track, sold or not.",
+      "sql": "FROM Track"
+    },
+    {
+      "term": "unsold track",
+      "synonyms": ["never sold", "dead stock", "no sales", "zero sales"],
+      "definition": "A track with no InvoiceLine row.",
+      "sql": "NOT EXISTS (SELECT 1 FROM InvoiceLine il WHERE il.TrackId = Track.TrackId)"
+    },
+    {
+      "term": "manager",
+      "synonyms": ["boss", "reports to", "direct reports", "team", "org chart"],
+      "definition": "Employee.ReportsTo holds the manager's EmployeeId. Direct reports of X are employees whose ReportsTo is X.",
+      "sql": "JOIN Employee m ON m.EmployeeId = e.ReportsTo"
+    },
+    {
+      "term": "tenure",
+      "synonyms": ["years of service", "length of service", "seniority", "hire date"],
+      "definition": "Whole years from Employee.HireDate to the as-of date 2025-12-22.",
+      "sql": "CAST((julianday('2025-12-22') - julianday(HireDate)) / 365.25 AS INTEGER)"
+    },
+    {
+      "term": "person name",
+      "synonyms": ["name", "who", "customer name", "employee name", "full name"],
+      "definition": "Show people as one column: first name, a space, last name.",
+      "sql": "FirstName || ' ' || LastName AS name"
+    }
+  ]
+}
