@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask your data</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f6f4; --surface-1: #fcfcfb; --border: #e2e1dc; --grid: #d9d8d4;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #6f6e6a;
+    --accent: #2a78d6; --accent-ink: #ffffff; --series-1: #2a78d6;
+    --code-bg: #f0efeb; --danger: #b42318; --chip: #eceae5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #121211; --surface-1: #1a1a19; --border: #2e2d2b; --grid: #3a3936;
+      --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #9a998f;
+      --accent: #3987e5; --accent-ink: #ffffff; --series-1: #3987e5;
+      --code-bg: #22221f; --danger: #f97066; --chip: #262523;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #121211; --surface-1: #1a1a19; --border: #2e2d2b; --grid: #3a3936;
+    --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #9a998f;
+    --accent: #3987e5; --accent-ink: #ffffff; --series-1: #3987e5;
+    --code-bg: #22221f; --danger: #f97066; --chip: #262523;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text-primary);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .lede { color: var(--text-secondary); margin: 0 0 24px; }
+  form { display: flex; gap: 8px; flex-wrap: wrap; }
+  input[type=text] { flex: 1 1 320px; min-width: 0; padding: 12px 14px; font: inherit; color: inherit;
+         background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; }
+  select, button { font: inherit; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+         background: var(--surface-1); color: inherit; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); cursor: pointer; }
+  button:disabled { opacity: .6; cursor: progress; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 24px; }
+  .chip { font-size: 14px; padding: 6px 12px; border-radius: 999px; background: var(--chip);
+          border: 1px solid var(--border); cursor: pointer; color: var(--text-secondary); }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-top: 16px; }
+  .answer { font-size: 18px; margin: 0 0 12px; }
+  .meta { font-size: 13px; color: var(--text-muted); }
+  .error { color: var(--danger); }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 20px 0 8px; }
+  pre { background: var(--code-bg); padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 13px; margin: 0; }
+  .table-wrap { overflow-x: auto; max-height: 360px; border: 1px solid var(--border); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--surface-1); color: var(--text-secondary); font-weight: 600; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chart svg { display: block; max-width: 100%; height: auto; }
+  .hidden { display: none; }
+  footer { margin-top: 40px; font-size: 13px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Ask your data</h1>
+  <p class="lede">Ask a question about a sample music store's sales (2021–2025). The agent writes read-only SQL,
+    runs it and shows you the answer, a chart and the SQL it used.</p>
+
+  <form id="ask">
+    <input type="text" id="q" name="q" autocomplete="off" required
+           placeholder="e.g. Which 5 countries brought in the most revenue in 2025?">
+    <select id="model" aria-label="Model">
+      <option value="auto">Auto (Haiku, escalates to Sonnet)</option>
+      <option value="haiku">Haiku 5.5</option>
+      <option value="sonnet">Sonnet 5.5</option>
+      <option value="opus">Opus 5.5</option>
+    </select>
+    <button class="primary" id="go" type="submit">Ask</button>
+  </form>
+  <div class="chips" id="examples"></div>
+
+  <section id="out" class="card hidden" aria-live="polite">
+    <p class="answer" id="answer"></p>
+    <div id="clarify" class="hidden">
+      <div class="options" id="options"></div>
+      <form id="replyForm" style="margin-top:12px">
+        <input type="text" id="reply" autocomplete="off" placeholder="Or type your own answer">
+        <button type="submit">Reply</button>
+      </form>
+    </div>
+    <div id="chartBox" class="hidden"><h2>Chart</h2><div class="chart" id="chart"></div></div>
+    <div id="tableBox" class="hidden"><h2>Result</h2><div class="table-wrap"><table id="table"></table></div></div>
+    <div id="sqlBox" class="hidden"><h2>SQL</h2><pre><code id="sql"></code></pre></div>
+    <p class="meta" id="meta"></p>
+  </section>
+
+  <footer>Read-only: one SELECT per query, row limit and timeout enforced. Sample data: the Chinook database (MIT licence).</footer>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const EXAMPLES = [
+  "What was total revenue in 2025?",
+  "How many active customers do we have?",
+  "Revenue by region in 2024",
+  "Which genre is best-selling in each region?",
+  "Who is our best customer?",
+];
+let conversationId = null;
+
+for (const ex of EXAMPLES) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "chip"; b.textContent = ex;
+  b.onclick = () => { $("q").value = ex; $("ask").requestSubmit(); };
+  $("examples").appendChild(b);
+}
+
+function show(el, on) { el.classList.toggle("hidden", !on); }
+
+function render(data) {
+  show($("out"), true);
+  conversationId = data.conversation_id;
+  $("answer").className = "answer";
+  if (data.status === "clarify") {
+    $("answer").textContent = data.clarification.question;
+    $("options").replaceChildren(...(data.clarification.options || []).map((o) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = o;
+      b.onclick = () => sendReply(o);
+      return b;
+    }));
+    show($("clarify"), true);
+  } else {
+    show($("clarify"), false);
+    if (data.status === "error") { $("answer").className = "answer error"; $("answer").textContent = data.error; }
+    else $("answer").textContent = data.answer;
+  }
+  // Chart SVG is generated server-side with every label XML-escaped.
+  $("chart").innerHTML = data.chart_svg || "";
+  show($("chartBox"), !!data.chart_svg);
+  renderTable(data.columns || [], data.rows || [], data.truncated);
+  $("sql").textContent = data.sql || "";
+  show($("sqlBox"), !!data.sql);
+  const models = (data.models_tried || []).join(" → ") || data.model;
+  $("meta").textContent = `${models} · ${data.api_calls} API calls · $${data.cost_usd.toFixed(4)} · ` +
+    `${(data.latency_ms / 1000).toFixed(1)} s` + (data.escalated ? ` · escalated (${data.escalation_reason})` : "");
+}
+
+function renderTable(cols, rows, truncated) {
+  const t = $("table");
+  t.replaceChildren();
+  show($("tableBox"), cols.length > 0);
+  if (!cols.length) return;
+  const head = t.createTHead().insertRow();
+  for (const c of cols) { const th = document.createElement("th"); th.textContent = c; head.appendChild(th); }
+  const body = t.createTBody();
+  for (const r of rows) {
+    const tr = body.insertRow();
+    for (const v of r) {
+      const td = tr.insertCell();
+      td.textContent = v === null ? "" : String(v);
+      if (typeof v === "number") td.className = "num";
+    }
+  }
+  if (truncated) { const tr = body.insertRow(); const td = tr.insertCell(); td.colSpan = cols.length; td.textContent = "… truncated at the row limit"; }
+}
+
+async function call(url, body) {
+  $("go").disabled = true;
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || r.statusText);
+    render(data);
+  } catch (e) {
+    show($("out"), true);
+    for (const id of ["clarify", "chartBox", "tableBox", "sqlBox"]) show($(id), false);
+    $("answer").className = "answer error"; $("answer").textContent = String(e.message || e); $("meta").textContent = "";
+  } finally { $("go").disabled = false; }
+}
+
+function sendReply(text) { if (conversationId && text) call("/api/reply", { conversation_id: conversationId, reply: text }); }
+
+$("ask").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = $("q").value.trim();
+  if (q) { $("answer").textContent = "Thinking…"; call("/api/ask", { question: q, model: $("model").value }); }
+});
+$("replyForm").addEventListener("submit", (e) => { e.preventDefault(); sendReply($("reply").value.trim()); $("reply").value = ""; });
+</script>
+</body>
+</html>
