@@ -103,7 +103,21 @@ What the runs showed:
 - **Confidence-based escalation never fired.** Haiku never rated itself low-confidence, even on its misses, so auto mode behaved like Haiku. Self-reported confidence was a weak routing signal on this workload. A targeted check, such as "does this name match more than one kind of entity?", would catch the main miss more cheaply than switching models.
 - **Caching carries the cost.** 92-95% of input tokens were cache reads, and a typical question took two API calls: one query, then the answer.
 
-Raw results, per-question misses and summaries are in `bench/results/`; `python -m bench.report <tag>` prints the tables.
+### How much thinking each model needs
+
+The same 50 questions, 3 runs each, at low and high effort (900 more runs, $8.80). The medium column is run 2. Each cell shows accuracy · cost per question · median latency.
+
+| Model | Low | Medium | High |
+|---|---|---|---|
+| Claude Haiku 5.5 | 96.0% · $0.00055 · 4.2 s | 96.7% · $0.00067 · 4.7 s | 98.0% · $0.00079 · 5.2 s |
+| Claude Sonnet 5.5 | 98.0% · $0.0092 · 4.4 s | 100% · $0.0096 · 4.5 s | 100% · $0.0103 · 4.9 s |
+| Claude Opus 5.5 | 100% · $0.0174 · 6.5 s | 100% · $0.0197 · 7.2 s | 100% · $0.0204 · 7.1 s |
+
+- **Opus 5.5 was perfect even at low effort**, which was also its cheapest and fastest setting.
+- **Clarification is the first thing to go when thinking is cut.** At low effort Sonnet 5.5 missed exactly one question: it stopped asking which "Apex" was meant.
+- **High effort lifts Haiku 5.5 to 98%** for 18% more cost. That is still about a twelfth of what Sonnet costs at low effort.
+
+Raw results, per-question misses and summaries are in `bench/results/`; `python -m bench.report <tag>` prints the tables. All benchmark runs together cost $15.32.
 
 | Clarifying question | Governed metric |
 |---|---|
