@@ -101,8 +101,9 @@ def _frame(w: int, h: int, title: str, body: str, desc: str) -> str:
 def _hbars(labels: list[str], values: list[float], spec: dict[str, Any], title: str, w: int = 640) -> str:
     n = len(labels)
     band, bar = 28, 18
-    label_w = min(int(w * 0.38), 220, max(60, max(len(s) for s in labels) * 7))
-    max_chars = max(6, (label_w - 10) // 7)
+    # ~7px per character at 12px; 12px of padding before the axis.
+    label_w = min(int(w * 0.38), 232, max(60, max(len(s) for s in labels) * 7 + 12))
+    max_chars = max(6, (label_w - 12) // 7)
     top = 32
     plot_w = w - label_w - 64
     h = top + n * band + 8
