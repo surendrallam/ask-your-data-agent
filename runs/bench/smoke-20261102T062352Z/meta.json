@@ -1,0 +1,18 @@
+{
+  "run_id": "smoke-20261102T062352Z",
+  "purpose": "smoke",
+  "git_commit": "9023ff30a9ff7a9823149c509b107eb03038608f",
+  "models": [
+    "haiku"
+  ],
+  "question_ids": [
+    "E04",
+    "M03",
+    "A01"
+  ],
+  "effort": "medium",
+  "max_tokens": 8000,
+  "started_utc": "2026-11-02T06:23:52.534847+00:00",
+  "pricing_source": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "pricing_checked": "2026-11-02"
+}
