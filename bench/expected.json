@@ -1,0 +1,733 @@
+{
+ "E01": {
+  "columns": [
+   "customers"
+  ],
+  "rows": [
+   [
+    59
+   ]
+  ]
+ },
+ "E02": {
+  "columns": [
+   "tracks"
+  ],
+  "rows": [
+   [
+    3503
+   ]
+  ]
+ },
+ "E03": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    2328.6
+   ]
+  ]
+ },
+ "E04": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    450.58
+   ]
+  ]
+ },
+ "E05": {
+  "columns": [
+   "invoices"
+  ],
+  "rows": [
+   [
+    83
+   ]
+  ]
+ },
+ "E06": {
+  "columns": [
+   "customers"
+  ],
+  "rows": [
+   [
+    5
+   ]
+  ]
+ },
+ "E07": {
+  "columns": [
+   "artists"
+  ],
+  "rows": [
+   [
+    275
+   ]
+  ]
+ },
+ "E08": {
+  "columns": [
+   "genres"
+  ],
+  "rows": [
+   [
+    25
+   ]
+  ]
+ },
+ "E09": {
+  "columns": [
+   "aov"
+  ],
+  "rows": [
+   [
+    5.65
+   ]
+  ]
+ },
+ "E10": {
+  "columns": [
+   "name"
+  ],
+  "rows": [
+   [
+    "Jane Peacock"
+   ],
+   [
+    "Margaret Park"
+   ],
+   [
+    "Steve Johnson"
+   ]
+  ]
+ },
+ "E11": {
+  "columns": [
+   "Country"
+  ],
+  "rows": [
+   [
+    "USA"
+   ]
+  ]
+ },
+ "E12": {
+  "columns": [
+   "video_tracks"
+  ],
+  "rows": [
+   [
+    214
+   ]
+  ]
+ },
+ "E13": {
+  "columns": [
+   "Name"
+  ],
+  "rows": [
+   [
+    "Occupation / Precipice"
+   ]
+  ]
+ },
+ "E14": {
+  "columns": [
+   "albums"
+  ],
+  "rows": [
+   [
+    21
+   ]
+  ]
+ },
+ "E15": {
+  "columns": [
+   "largest"
+  ],
+  "rows": [
+   [
+    25.86
+   ]
+  ]
+ },
+ "E16": {
+  "columns": [
+   "year",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "2021",
+    449.46
+   ],
+   [
+    "2022",
+    481.45
+   ],
+   [
+    "2023",
+    469.58
+   ],
+   [
+    "2024",
+    477.53
+   ],
+   [
+    "2025",
+    450.58
+   ]
+  ]
+ },
+ "E17": {
+  "columns": [
+   "rep",
+   "customers"
+  ],
+  "rows": [
+   [
+    "Jane Peacock",
+    21
+   ],
+   [
+    "Margaret Park",
+    20
+   ],
+   [
+    "Steve Johnson",
+    18
+   ]
+  ]
+ },
+ "E18": {
+  "columns": [
+   "corporate_customers"
+  ],
+  "rows": [
+   [
+    10
+   ]
+  ]
+ },
+ "M01": {
+  "columns": [
+   "country",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "USA",
+    85.14
+   ],
+   [
+    "Canada",
+    72.27
+   ],
+   [
+    "France",
+    40.59
+   ],
+   [
+    "Brazil",
+    37.62
+   ],
+   [
+    "Czech Republic",
+    36.75
+   ]
+  ]
+ },
+ "M02": {
+  "columns": [
+   "genre",
+   "units"
+  ],
+  "rows": [
+   [
+    "Rock",
+    835
+   ],
+   [
+    "Latin",
+    386
+   ],
+   [
+    "Metal",
+    264
+   ],
+   [
+    "Alternative & Punk",
+    244
+   ],
+   [
+    "Jazz",
+    80
+   ]
+  ]
+ },
+ "M03": {
+  "columns": [
+   "active_customers"
+  ],
+  "rows": [
+   [
+    31
+   ]
+  ]
+ },
+ "M04": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    112.86
+   ]
+  ]
+ },
+ "M05": {
+  "columns": [
+   "rep"
+  ],
+  "rows": [
+   [
+    "Jane Peacock"
+   ]
+  ]
+ },
+ "M06": {
+  "columns": [
+   "region",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "Asia",
+    10.89
+   ],
+   [
+    "Europe",
+    212.93
+   ],
+   [
+    "North America",
+    170.55
+   ],
+   [
+    "Oceania",
+    22.77
+   ],
+   [
+    "South America",
+    60.39
+   ]
+  ]
+ },
+ "M07": {
+  "columns": [
+   "customer"
+  ],
+  "rows": [
+   [
+    "Helena Holý"
+   ],
+   [
+    "Richard Cunningham"
+   ],
+   [
+    "Ladislav Kovács"
+   ],
+   [
+    "Hugh O'Reilly"
+   ],
+   [
+    "Luis Rojas"
+   ]
+  ]
+ },
+ "M08": {
+  "columns": [
+   "artist",
+   "tracks"
+  ],
+  "rows": [
+   [
+    "Iron Maiden",
+    213
+   ],
+   [
+    "U2",
+    135
+   ],
+   [
+    "Led Zeppelin",
+    114
+   ]
+  ]
+ },
+ "M09": {
+  "columns": [
+   "media_type",
+   "avg_minutes"
+  ],
+  "rows": [
+   [
+    "MPEG audio file",
+    4.43
+   ],
+   [
+    "Protected AAC audio file",
+    4.7
+   ],
+   [
+    "Protected MPEG-4 video file",
+    39.05
+   ],
+   [
+    "Purchased AAC audio file",
+    4.35
+   ],
+   [
+    "AAC audio file",
+    4.61
+   ]
+  ]
+ },
+ "M10": {
+  "columns": [
+   "unsold"
+  ],
+  "rows": [
+   [
+    1519
+   ]
+  ]
+ },
+ "M11": {
+  "columns": [
+   "month",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "01",
+    37.62
+   ],
+   [
+    "02",
+    37.62
+   ],
+   [
+    "03",
+    37.62
+   ],
+   [
+    "04",
+    37.62
+   ],
+   [
+    "05",
+    37.62
+   ],
+   [
+    "06",
+    37.62
+   ],
+   [
+    "07",
+    39.62
+   ],
+   [
+    "08",
+    47.62
+   ],
+   [
+    "09",
+    46.71
+   ],
+   [
+    "10",
+    42.62
+   ],
+   [
+    "11",
+    37.62
+   ],
+   [
+    "12",
+    37.62
+   ]
+  ]
+ },
+ "M12": {
+  "columns": [
+   "usa_share_pct"
+  ],
+  "rows": [
+   [
+    22.5
+   ]
+  ]
+ },
+ "M13": {
+  "columns": [
+   "Title"
+  ],
+  "rows": [
+   [
+    "Greatest Hits"
+   ]
+  ]
+ },
+ "M14": {
+  "columns": [
+   "aov"
+  ],
+  "rows": [
+   [
+    5.59
+   ]
+  ]
+ },
+ "M15": {
+  "columns": [
+   "new_customers"
+  ],
+  "rows": [
+   [
+    13
+   ]
+  ]
+ },
+ "M16": {
+  "columns": [
+   "name"
+  ],
+  "rows": [
+   [
+    "Jane Peacock"
+   ],
+   [
+    "Margaret Park"
+   ],
+   [
+    "Steve Johnson"
+   ]
+  ]
+ },
+ "H01": {
+  "columns": [
+   "growth_pct"
+  ],
+  "rows": [
+   [
+    -5.6
+   ]
+  ]
+ },
+ "H02": {
+  "columns": [
+   "region",
+   "genre"
+  ],
+  "rows": [
+   [
+    "Asia",
+    "Metal"
+   ],
+   [
+    "Europe",
+    "Rock"
+   ],
+   [
+    "North America",
+    "Rock"
+   ],
+   [
+    "South America",
+    "Rock"
+   ]
+  ]
+ },
+ "H03": {
+  "columns": [
+   "customer"
+  ],
+  "rows": [
+   [
+    "Ladislav Kovács"
+   ],
+   [
+    "Luis Rojas"
+   ]
+  ]
+ },
+ "H04": {
+  "columns": [
+   "rep"
+  ],
+  "rows": [
+   [
+    "Steve Johnson"
+   ]
+  ]
+ },
+ "H05": {
+  "columns": [
+   "video_share_pct"
+  ],
+  "rows": [
+   [
+    9.5
+   ]
+  ]
+ },
+ "H06": {
+  "columns": [
+   "customers"
+  ],
+  "rows": [
+   [
+    9
+   ]
+  ]
+ },
+ "H07": {
+  "columns": [
+   "customer",
+   "lifetime_value"
+  ],
+  "rows": [
+   [
+    "Richard Cunningham",
+    47.62
+   ],
+   [
+    "Luis Rojas",
+    46.62
+   ]
+  ]
+ },
+ "H08": {
+  "columns": [
+   "month",
+   "revenue",
+   "above_average"
+  ],
+  "rows": [
+   [
+    "11",
+    49.62,
+    12.07
+   ]
+  ]
+ },
+ "A01": {
+  "columns": [
+   "customer"
+  ],
+  "rows": [
+   [
+    "Helena Holý"
+   ]
+  ]
+ },
+ "A02": {
+  "columns": [
+   "Name"
+  ],
+  "rows": [
+   [
+    "Rock"
+   ]
+  ]
+ },
+ "A03": {
+  "columns": [
+   "artist",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "Iron Maiden",
+    138.6
+   ],
+   [
+    "U2",
+    105.93
+   ],
+   [
+    "Metallica",
+    90.09
+   ],
+   [
+    "Led Zeppelin",
+    86.13
+   ],
+   [
+    "Lost",
+    81.59
+   ]
+  ]
+ },
+ "A04": {
+  "columns": [
+   "rep"
+  ],
+  "rows": [
+   [
+    "Jane Peacock"
+   ]
+  ]
+ },
+ "A05": {
+  "columns": [
+   "Title"
+  ],
+  "rows": [
+   [
+    "Lost, Season 3"
+   ]
+  ]
+ },
+ "A06": {
+  "columns": [
+   "year",
+   "revenue"
+  ],
+  "rows": [
+   [
+    "2024",
+    477.53
+   ],
+   [
+    "2025",
+    450.58
+   ]
+  ]
+ },
+ "A07": {
+  "columns": [
+   "Country"
+  ],
+  "rows": [
+   [
+    "USA"
+   ]
+  ]
+ },
+ "A08": {
+  "columns": [
+   "revenue"
+  ],
+  "rows": [
+   [
+    218.91
+   ]
+  ]
+ }
+}
