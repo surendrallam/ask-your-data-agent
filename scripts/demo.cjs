@@ -95,7 +95,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     };
     if (s.openSql) await open("SQL behind");
     if (s.openSteps) await open("How it got there");
+    await page.evaluate(() => { document.querySelector("#caption").style.visibility = "hidden"; });
     await card.screenshot({ path: path.join(OUT, `answer-${shot++}.png`) });
+    await page.evaluate(() => { document.querySelector("#caption").style.visibility = "visible"; });
     await sleep(3000);
   }
   await caption("Haiku 5.5 answers first and hands hard questions to Sonnet 5.5");
