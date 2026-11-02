@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
 from . import config
@@ -45,7 +46,8 @@ def build_server(db_path: Path | str = config.DB_PATH) -> MCPServer:
     def run_sql(sql: str) -> str:
         out = executor.run_sql(sql)
         if out.is_error:
-            raise ValueError(out.content)
+            # ToolError (not a plain exception) so the model sees why the SQL was rejected.
+            raise ToolError(out.content)
         payload = json.loads(out.content)
         payload["sql"] = out.query.sql
         return json.dumps(payload, ensure_ascii=False)

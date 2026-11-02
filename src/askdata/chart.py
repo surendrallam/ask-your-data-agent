@@ -69,18 +69,22 @@ def pick_spec(columns: list[str], rows: list[list[Any]], hint: dict[str, Any] | 
     return {"type": kind, "x": columns[x], "y": columns[y], "time": is_time}
 
 
-def render_svg(columns: list[str], rows: list[list[Any]], hint: dict[str, Any] | None = None, title: str = "") -> str | None:
+def render_svg(
+    columns: list[str], rows: list[list[Any]], hint: dict[str, Any] | None = None, title: str = "", width: int = 640
+) -> str | None:
+    """Render at `width` user units; the host page draws it at that pixel width so text stays 12px."""
     spec = pick_spec(columns, rows, hint)
+    width = max(280, min(int(width), 1200))
     if spec is None:
         return None
     xi, yi = columns.index(spec["x"]), columns.index(spec["y"])
     labels = [str(r[xi]) for r in rows]
     values = [_num(r[yi]) or 0.0 for r in rows]
     if spec["type"] == "line":
-        return _line(labels, values, spec, title)
+        return _line(labels, values, spec, title, width)
     if spec["time"]:
-        return _columns(labels, values, spec, title)
-    return _hbars(labels, values, spec, title)
+        return _columns(labels, values, spec, title, width)
+    return _hbars(labels, values, spec, title, width)
 
 
 def _frame(w: int, h: int, title: str, body: str, desc: str) -> str:
@@ -94,19 +98,20 @@ def _frame(w: int, h: int, title: str, body: str, desc: str) -> str:
     )
 
 
-def _hbars(labels: list[str], values: list[float], spec: dict[str, Any], title: str) -> str:
+def _hbars(labels: list[str], values: list[float], spec: dict[str, Any], title: str, w: int = 640) -> str:
     n = len(labels)
     band, bar = 28, 18
-    label_w = min(220, max(60, max(len(s) for s in labels) * 7))
-    w, top = 640, 32
-    plot_w = w - label_w - 70
+    label_w = min(int(w * 0.38), 220, max(60, max(len(s) for s in labels) * 7))
+    max_chars = max(6, (label_w - 10) // 7)
+    top = 32
+    plot_w = w - label_w - 64
     h = top + n * band + 8
     vmax = max(max(values), 0) or 1.0
     parts = [f'<line x1="{label_w}" y1="{top}" x2="{label_w}" y2="{top + n * band}" stroke="var(--grid, #d9d8d4)"/>']
     for i, (lab, v) in enumerate(zip(labels, values)):
         y = top + i * band + (band - bar) / 2
         bw = max(1.0, plot_w * max(v, 0) / vmax)
-        short = lab if len(lab) <= 32 else lab[:31] + "…"
+        short = lab if len(lab) <= max_chars else lab[: max_chars - 1] + "…"
         tip = escape(f"{lab}: {_fmt(v)}")
         # Square at the baseline, 4px rounded at the data end.
         r = min(4.0, bw / 2, bar / 2)
@@ -127,26 +132,37 @@ def _hbars(labels: list[str], values: list[float], spec: dict[str, Any], title: 
     return _frame(w, h, title or f"{spec['y']} by {spec['x']}", "".join(parts), desc)
 
 
-def _axis_y(vmin: float, vmax: float, x0: float, x1: float, y_of, ticks: int = 4) -> list[str]:
+def _nice_max(vmax: float, ticks: int = 5) -> tuple[float, float]:
+    """Round axis top and step (1, 2, 2.5 or 5 x 10^k) so tick labels are round numbers."""
+    import math
+
+    raw = max(vmax, 1e-9) / ticks
+    mag = 10 ** math.floor(math.log10(raw))
+    step = next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw)
+    return step * math.ceil(vmax / step - 1e-9), step
+
+
+def _axis_y(vmin: float, vmax: float, x0: float, x1: float, y_of, step: float) -> list[str]:
     out = []
-    for k in range(ticks + 1):
-        v = vmin + (vmax - vmin) * k / ticks
+    v, k = vmin, 0
+    while v <= vmax + 1e-9:
         y = y_of(v)
         out.append(f'<line x1="{x0}" y1="{y:.1f}" x2="{x1}" y2="{y:.1f}" stroke="var(--grid, #d9d8d4)" stroke-width="{1 if k else 1.5}"/>')
         out.append(f'<text x="{x0 - 6}" y="{y + 4:.1f}" text-anchor="end" fill="var(--text-muted, #6f6e6a)">{_fmt(v)}</text>')
+        v, k = vmin + step * (k + 1), k + 1
     return out
 
 
-def _columns(labels: list[str], values: list[float], spec: dict[str, Any], title: str) -> str:
+def _columns(labels: list[str], values: list[float], spec: dict[str, Any], title: str, w: int = 640) -> str:
     n = len(labels)
-    w, h, left, top, bottom = 640, 300, 56, 32, 40
+    h, left, top, bottom = (300 if w >= 480 else 240), 56, 32, 40
     plot_w, plot_h = w - left - 12, h - top - bottom
-    vmax = max(max(values), 0) or 1.0
+    vmax, step_v = _nice_max(max(max(values), 0) or 1.0)
     y_of = lambda v: top + plot_h - plot_h * max(v, 0) / vmax  # noqa: E731
     band = plot_w / n
     bar = min(24.0, band - 2)
-    parts = _axis_y(0, vmax, left, w - 12, y_of)
-    step = max(1, n // 12)
+    parts = _axis_y(0, vmax, left, w - 12, y_of, step_v)
+    step = max(1, -(-n // max(1, (w - left) // 56)))
     for i, (lab, v) in enumerate(zip(labels, values)):
         x = left + i * band + (band - bar) / 2
         y = y_of(v)
@@ -164,18 +180,19 @@ def _columns(labels: list[str], values: list[float], spec: dict[str, Any], title
     return _frame(w, h, title or f"{spec['y']} by {spec['x']}", "".join(parts), desc)
 
 
-def _line(labels: list[str], values: list[float], spec: dict[str, Any], title: str) -> str:
+def _line(labels: list[str], values: list[float], spec: dict[str, Any], title: str, w: int = 640) -> str:
     n = len(labels)
-    w, h, left, top, bottom = 640, 300, 56, 32, 40
+    h, left, top, bottom = (300 if w >= 480 else 240), 56, 32, 40
     plot_w, plot_h = w - left - 16, h - top - bottom
-    lo, hi = min(min(values), 0), max(values)
-    hi = hi if hi > lo else lo + 1
+    lo = min(min(values), 0)
+    span, step_v = _nice_max((max(values) - lo) or 1.0)
+    hi = lo + span
     y_of = lambda v: top + plot_h - plot_h * (v - lo) / (hi - lo)  # noqa: E731
     x_of = lambda i: left + (plot_w * i / (n - 1) if n > 1 else plot_w / 2)  # noqa: E731
-    parts = _axis_y(lo, hi, left, w - 16, y_of)
+    parts = _axis_y(lo, hi, left, w - 16, y_of, step_v)
     pts = " ".join(f"{x_of(i):.1f},{y_of(v):.1f}" for i, v in enumerate(values))
     parts.append(f'<polyline points="{pts}" fill="none" stroke="var(--series-1, #2a78d6)" stroke-width="2" stroke-linejoin="round"/>')
-    step = max(1, n // 10)
+    step = max(1, -(-n // max(1, (w - left) // 64)))
     for i, (lab, v) in enumerate(zip(labels, values)):
         x, y = x_of(i), y_of(v)
         parts.append(
