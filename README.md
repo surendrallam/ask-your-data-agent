@@ -4,7 +4,11 @@ A Claude agent that answers plain-English business questions over a sales databa
 
 It ships with a **50-question benchmark** that compares Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 on accuracy, cost and latency, plus an auto mode that starts on Haiku and escalates to Sonnet only when a question proves hard.
 
-> **Benchmark results:** the first full run is scheduled for 3 Nov 2026. The table will be published here, with the raw results in `bench/results/`.
+> **Results (2 Nov 2026, 3 runs of all 50 questions):** Sonnet 5.5 and Opus 5.5 answered every question correctly in all three runs. Haiku 5.5 scored 96.7% at about 1/14 of Sonnet's cost per question. Details in [Results](#results).
+
+![A ranked answer: one-line summary, bar chart, result table and the SQL behind it](docs/media/answer-1.png)
+
+A 75-second captioned demo is in [`docs/media/demo.mp4`](docs/media/demo.mp4).
 
 ## What it does
 
@@ -80,6 +84,30 @@ python -m bench.run --configs haiku,sonnet,opus,auto --budget 40
 ```
 
 The runner resumes where it stopped, stops at the budget, and writes `results.jsonl`, `summary.json` and `summary.md` to `bench/results/<date>/`.
+
+## Results
+
+Run on 2 Nov 2026: all 50 questions, 3 runs each, adaptive thinking at medium effort, prompt v2. That makes 600 graded runs, which cost $4.59 in total.
+
+| Model | Accuracy (150 runs) | Right in all 3 runs | $ per question | $ per 1,000 questions | Median / p90 latency |
+|---|---|---|---|---|---|
+| Claude Haiku 5.5 | 96.7% | 47 of 50 | $0.0007 | $0.67 | 4.7 s / 7.4 s |
+| Claude Sonnet 5.5 | **100%** | 50 of 50 | $0.0096 | $9.57 | 4.5 s / 6.4 s |
+| Claude Opus 5.5 | **100%** | 50 of 50 | $0.0197 | $19.70 | 7.2 s / 10.9 s |
+| Auto (Haiku first, Sonnet if needed) | 97.3% | 48 of 50 | $0.0006 | $0.64 | 4.2 s / 6.9 s |
+
+What the runs showed:
+
+- **The first run's misses were about the shape of the answer, not the reasoning.** In run 1 (prompt v1), 7 of the 9 misses had the right figure inside a wider table, such as every segment's share when the question asked for Enterprise's. One added instruction, "finish with a query that is exactly the answer", took Sonnet from 94% to 100% and Opus from 98% to 100%. Run 1 is kept in `bench/results/2026-11-02/`.
+- **Haiku's misses are systematic, not random.** "Show me the sales trend for Apex" matches both a customer and a product brand: Haiku picked the brand in all six of its runs (Haiku and auto mode) instead of asking. Its other misses were the table-shape kind: twice a product lookup and once a breakdown, instead of the exact answer.
+- **Confidence-based escalation never fired.** Haiku never rated itself low-confidence, even on its misses, so auto mode behaved like Haiku. Self-reported confidence was a weak routing signal on this workload. A targeted check, such as "does this name match more than one kind of entity?", would catch the main miss more cheaply than switching models.
+- **Caching carries the cost.** 92-95% of input tokens were cache reads, and a typical question took two API calls: one query, then the answer.
+
+Raw results, per-question misses and summaries are in `bench/results/`; `python -m bench.report <tag>` prints the tables.
+
+| Clarifying question | Governed metric |
+|---|---|
+| ![After a clarifying question, the answer for Priya Sharma](docs/media/answer-2.png) | ![Target attainment by region](docs/media/answer-4.png) |
 
 ## Quick start
 
