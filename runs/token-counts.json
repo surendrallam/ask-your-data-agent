@@ -1,0 +1,7 @@
+{
+  "first_request_input_tokens": {
+    "claude-haiku-5-5": 3116,
+    "claude-sonnet-5-5": 3116,
+    "claude-opus-5-5": 3116
+  }
+}

@@ -41,6 +41,44 @@ def _print_result(res, as_json: bool) -> None:
     )
 
 
+def check_api() -> int:
+    """Free calls only: model lookup and token counting. Logged to the ledger at $0. Never prints the key."""
+    import time
+
+    from .agent import MissingAPIKey, make_client
+    from .costs import CallUsage, CostLedger
+    from .prompts import system_prompt
+    from .tools import TOOLS
+
+    try:
+        client = make_client()
+    except MissingAPIKey as e:
+        print(e, file=sys.stderr)
+        return 2
+    ledger = CostLedger()
+    system = [{"type": "text", "text": system_prompt(), "cache_control": {"type": "ephemeral"}}]
+    counts = {}
+    for model in (config.HAIKU, config.SONNET, config.OPUS):
+        t0 = time.perf_counter()
+        info = client.models.retrieve(model)
+        ledger.record(model=model, usage=CallUsage(), latency_ms=(time.perf_counter() - t0) * 1000,
+                      stop_reason="models.retrieve", purpose="free-check", billable=False)
+        t0 = time.perf_counter()
+        n = client.messages.count_tokens(
+            model=model, system=system, tools=TOOLS, thinking={"type": "adaptive"},
+            output_config={"effort": config.EFFORT}, cache_control={"type": "ephemeral"},
+            messages=[{"role": "user", "content": "How many customers do we have?"}],
+        ).input_tokens
+        ledger.record(model=model, usage=CallUsage(input_tokens=n), latency_ms=(time.perf_counter() - t0) * 1000,
+                      stop_reason="count_tokens", purpose="free-check", billable=False)
+        counts[model] = n
+        print(f"{model}: reachable ({getattr(info, 'display_name', model)}); first request = {n} input tokens")
+    out = config.COSTS_CSV.parent / "token-counts.json"
+    out.write_text(json.dumps({"first_request_input_tokens": counts}, indent=2), encoding="utf-8")
+    print(f"API spend so far: ${ledger.total_usd:.4f} (these checks are free)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="askdata")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -55,11 +93,14 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("query")
     sub.add_parser("schema", help="Print the system prompt and schema the model sees")
     sub.add_parser("check-key", help=f"Say whether {config.API_KEY_ENV} is set (prints yes/no only)")
+    sub.add_parser("check-api", help="Free check: key reaches each model; exact prompt token counts (count_tokens is free)")
     args = ap.parse_args(argv)
 
     if args.cmd == "check-key":
         print("yes" if os.environ.get(config.API_KEY_ENV) else "no")
         return 0
+    if args.cmd == "check-api":
+        return check_api()
     if args.cmd == "schema":
         from .prompts import system_prompt
 

@@ -32,6 +32,18 @@ GENERIC_REPLY = "Use your best judgment with the glossary definitions."
 DEFAULT_DEADLINE = "2026-11-03T17:30:00Z"  # 3 Nov 2026, 11 pm IST: last moment for paid runs
 
 
+def _git_commit() -> str:
+    import subprocess
+
+    try:
+        out = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10)
+        dirty = subprocess.run(["git", "-C", str(ROOT), "status", "--porcelain", "--", "src", "bench", "data"],
+                               capture_output=True, text=True, timeout=10).stdout.strip()
+        return out.stdout.strip() + ("+dirty" if dirty else "")
+    except Exception:
+        return "unknown"
+
+
 def run_question(agent: Agent, q: dict, model: str, gold_rows: list) -> dict:
     t0 = time.perf_counter()
     res = agent.ask(q["question"], model=model, question_id=q["id"])
@@ -70,6 +82,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--deadline", default=DEFAULT_DEADLINE, help="refuse paid calls after this UTC time")
     ap.add_argument("--resume", help="run id to continue (skips questions already done)")
     ap.add_argument("--dry-run", action="store_true", help="use the scripted oracle client; no API calls")
+    ap.add_argument("--validate-with-api", action="store_true",
+                    help="with --dry-run: also send each request to the free count_tokens endpoint")
     ap.add_argument("--confirm-spend", action="store_true", help="required for paid runs")
     args = ap.parse_args(argv)
 
@@ -80,7 +94,15 @@ def main(argv: list[str] | None = None) -> int:
     expected = json.loads(EXPECTED.read_text(encoding="utf-8"))
     models = [m.strip() for m in args.models.split(",") if m.strip()]
 
-    if args.dry_run:
+    validator = None
+    if args.dry_run and args.validate_with_api:
+        from askdata.agent import make_client
+
+        from .validate import ApiValidatingClient
+
+        purpose = "free-check"
+        ledger_path = config.COSTS_CSV  # free calls are logged too, at $0
+    elif args.dry_run:
         from .oracle import OracleClient
 
         client, purpose = OracleClient(), "dry-run"
@@ -95,7 +117,12 @@ def main(argv: list[str] | None = None) -> int:
         ledger_path = config.COSTS_CSV
 
     run_id = args.resume or f"{purpose}-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-    out_dir = RUNS / run_id if not args.dry_run else ROOT / "runs" / "scratch" / run_id
+    if args.dry_run and args.validate_with_api:
+        out_dir = ROOT / "runs" / "preflight" / run_id
+    elif args.dry_run:
+        out_dir = ROOT / "runs" / "scratch" / run_id
+    else:
+        out_dir = RUNS / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
     results_path = out_dir / "results.jsonl"
     done = set()
@@ -105,8 +132,14 @@ def main(argv: list[str] | None = None) -> int:
             done.add((r["model"], r["id"]))
 
     ledger = CostLedger(ledger_path, run_budget_usd=args.budget)
+    agent_ledger = ledger
+    if args.dry_run and args.validate_with_api:
+        # Real count_tokens calls go to the real ledger at $0; the oracle's scripted replies are not
+        # API calls, so the agent logs them to a scratch ledger instead.
+        validator = client = ApiValidatingClient(make_client(), ledger, run_id)
+        agent_ledger = CostLedger(ROOT / "runs" / "scratch" / f"{run_id}-oracle.csv")
     start_total = ledger.total_usd
-    meta = {"run_id": run_id, "purpose": purpose, "models": models, "question_ids": [q["id"] for q in questions],
+    meta = {"run_id": run_id, "purpose": purpose, "git_commit": _git_commit(), "models": models, "question_ids": [q["id"] for q in questions],
             "effort": config.EFFORT, "max_tokens": config.MAX_TOKENS, "started_utc": datetime.now(timezone.utc).isoformat(),
             "pricing_source": config.PRICING_SOURCE, "pricing_checked": config.PRICING_CHECKED}
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
@@ -115,13 +148,15 @@ def main(argv: list[str] | None = None) -> int:
     stopped = ""
     with results_path.open("a", encoding="utf-8") as out:
         for model in models:
-            agent = Agent(client, ledger=ledger, purpose=purpose, run_id=run_id)
+            agent = Agent(client, ledger=agent_ledger, purpose=purpose, run_id=run_id)
             for q in questions:
                 if (model, q["id"]) in done:
                     continue
                 if not args.dry_run and datetime.now(timezone.utc) >= deadline:
                     stopped = "deadline reached"
                     break
+                if validator is not None:
+                    validator.question_id = q["id"]
                 try:
                     rec = run_question(agent, q, model, expected[q["id"]]["rows"])
                 except BudgetExceeded as e:
@@ -134,6 +169,10 @@ def main(argv: list[str] | None = None) -> int:
                       f"run ${ledger.run_totals.get(run_id, 0):.4f} total ${ledger.total_usd:.4f}  {rec['reason']}")
             if stopped:
                 break
+    if validator is not None:
+        (out_dir / "token-counts.json").write_text(json.dumps(validator.records, indent=1), encoding="utf-8")
+        modes = sorted({r["mode"] for r in validator.records})
+        print(f"count_tokens validated {len(validator.records)} requests (modes: {modes}); counts in {out_dir / 'token-counts.json'}")
     print(f"run spend ${ledger.total_usd - start_total:.4f}; total API spend ${ledger.total_usd:.4f}")
     if stopped:
         print(f"STOPPED: {stopped}")
