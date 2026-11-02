@@ -1,0 +1,125 @@
+{
+  "haiku": {
+    "label": "Haiku 5.5",
+    "n": 50,
+    "correct": 46,
+    "correct_strict": 44,
+    "by_difficulty": {
+      "easy": [
+        18,
+        18
+      ],
+      "medium": [
+        16,
+        16
+      ],
+      "hard": [
+        8,
+        8
+      ],
+      "ambiguous": [
+        4,
+        8
+      ]
+    },
+    "clarify_recall": [
+      4,
+      8
+    ],
+    "unneeded_clarifications": [
+      0,
+      42
+    ],
+    "cost_total": 0.025927,
+    "cost_per_q": 0.00051854,
+    "latency_median_s": 3.7975,
+    "latency_p90_s": 5.891,
+    "api_calls_mean": 2.64,
+    "output_tokens_mean": 664.32,
+    "cache_read_share": 0.9135814345233896,
+    "escalated": 0,
+    "errors": 0
+  },
+  "sonnet": {
+    "label": "Sonnet 5.5",
+    "n": 50,
+    "correct": 46,
+    "correct_strict": 46,
+    "by_difficulty": {
+      "easy": [
+        18,
+        18
+      ],
+      "medium": [
+        16,
+        16
+      ],
+      "hard": [
+        8,
+        8
+      ],
+      "ambiguous": [
+        4,
+        8
+      ]
+    },
+    "clarify_recall": [
+      4,
+      8
+    ],
+    "unneeded_clarifications": [
+      0,
+      42
+    ],
+    "cost_total": 0.422641,
+    "cost_per_q": 0.00845282,
+    "latency_median_s": 5.04,
+    "latency_p90_s": 7.242,
+    "api_calls_mean": 2.74,
+    "output_tokens_mean": 546.48,
+    "cache_read_share": 0.9130098233692567,
+    "escalated": 0,
+    "errors": 0
+  },
+  "opus": {
+    "label": "Opus 5.5",
+    "n": 50,
+    "correct": 49,
+    "correct_strict": 49,
+    "by_difficulty": {
+      "easy": [
+        18,
+        18
+      ],
+      "medium": [
+        16,
+        16
+      ],
+      "hard": [
+        8,
+        8
+      ],
+      "ambiguous": [
+        7,
+        8
+      ]
+    },
+    "clarify_recall": [
+      7,
+      8
+    ],
+    "unneeded_clarifications": [
+      0,
+      42
+    ],
+    "cost_total": 0.873282,
+    "cost_per_q": 0.01746564,
+    "latency_median_s": 6.24,
+    "latency_p90_s": 11.093,
+    "api_calls_mean": 2.76,
+    "output_tokens_mean": 587.6,
+    "cache_read_share": 0.9186266413411512,
+    "escalated": 0,
+    "errors": 0
+  }
+}

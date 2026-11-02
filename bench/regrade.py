@@ -41,6 +41,7 @@ def regrade_record(rec: dict, q: dict, gold_rows: list) -> dict:
     out["correct"] = ok and (asked or not ambiguous)
     if ambiguous and not asked:
         reason = "did not ask a clarifying question" + (" (guess matched)" if ok else "")
+        strict_reason = "did not ask a clarifying question" + (" (guess matched)" if strict_ok else "")
     out["reason"], out["reason_strict"] = reason, strict_reason
     return out
 

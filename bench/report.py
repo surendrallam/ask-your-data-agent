@@ -1,6 +1,9 @@
 """Summarise benchmark runs into tables (Markdown + JSON).
 
     python -m bench.report runs/bench/<run_id> [more run dirs] --out docs/results
+
+Uses graded.jsonl (written by bench.regrade) when present, so the report
+shows both the strict score and the corrected score; otherwise results.jsonl.
 """
 
 from __future__ import annotations
@@ -19,8 +22,12 @@ DIFFS = ["easy", "medium", "hard", "ambiguous"]
 def load(dirs: list[Path]) -> list[dict]:
     recs: dict[tuple[str, str], dict] = {}
     for d in dirs:
-        for line in (d / "results.jsonl").read_text(encoding="utf-8").splitlines():
+        src = d / "graded.jsonl" if (d / "graded.jsonl").exists() else d / "results.jsonl"
+        for line in src.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
             r = json.loads(line)
+            r.setdefault("correct_strict", r["correct"])
             recs[(r["model"], r["id"])] = r  # a later run of the same (model, id) wins
     return list(recs.values())
 
@@ -43,6 +50,7 @@ def summarise(recs: list[dict]) -> dict[str, dict]:
         prompt = sum(r["input_tokens"] + r["cache_creation_input_tokens"] + r["cache_read_input_tokens"] for r in rs)
         out[model] = {
             "label": LABELS.get(model, model), "n": n, "correct": sum(r["correct"] for r in rs),
+            "correct_strict": sum(r["correct_strict"] for r in rs),
             "by_difficulty": {d: [sum(r["correct"] for r in rs if r["difficulty"] == d),
                                   sum(1 for r in rs if r["difficulty"] == d)] for d in DIFFS},
             "clarify_recall": [sum(r["asked_clarification"] for r in amb), len(amb)],
@@ -62,13 +70,14 @@ def summarise(recs: list[dict]) -> dict[str, dict]:
 def markdown(s: dict[str, dict]) -> str:
     order = [m for m in ["claude-haiku-5-5", "haiku", "claude-sonnet-5-5", "sonnet", "claude-opus-5-5", "opus", "auto"] if m in s]
     order += [m for m in s if m not in order]
-    lines = ["| Model | Accuracy | Easy | Medium | Hard | Ambiguous | Cost / question | Median latency | Total cost |",
-             "|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| Model | Accuracy | Strict grader | Easy | Medium | Hard | Ambiguous | Cost / question | Median latency | Total cost |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     for m in order:
         x = s[m]
         bd = x["by_difficulty"]
         lines.append(
             f"| {x['label']} | **{x['correct']}/{x['n']} ({pct(x['correct'], x['n'])})** | "
+            f"{x['correct_strict']}/{x['n']} | "
             + " | ".join(f"{bd[d][0]}/{bd[d][1]}" for d in DIFFS)
             + f" | ${x['cost_per_q']:.4f} | {x['latency_median_s']:.1f} s | ${x['cost_total']:.2f} |"
         )
@@ -85,11 +94,12 @@ def markdown(s: dict[str, dict]) -> str:
 
 
 def failures(recs: list[dict]) -> str:
-    rows = ["| Model | Question | Why |", "|---|---|---|"]
+    rows = ["| Model | Question | Corrected grader | Strict grader |", "|---|---|---|---|"]
     for r in sorted(recs, key=lambda r: (r["model"], r["id"])):
-        if not r["correct"]:
-            why = (r["reason"] or r["error"] or "").replace("|", "/")
-            rows.append(f"| {LABELS.get(r['model'], r['model'])} | {r['id']}: {r['question']} | {why} |")
+        if not r["correct"] or not r["correct_strict"]:
+            why = "correct" if r["correct"] else (r["reason"] or r["error"] or "").replace("|", "/")
+            strict = "correct" if r["correct_strict"] else (r.get("reason_strict") or r["reason"] or "").replace("|", "/")
+            rows.append(f"| {LABELS.get(r['model'], r['model'])} | {r['id']}: {r['question']} | {why} | {strict} |")
     return "\n".join(rows) + "\n"
 
 
