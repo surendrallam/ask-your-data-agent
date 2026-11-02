@@ -1,0 +1,245 @@
+# Business glossary for Trailhead Goods. These definitions are the "governed
+# metrics": the agent must use them instead of inventing its own.
+# Today is 2026-10-01; data runs to 2026-09-30.
+
+- term: Net revenue
+  aliases: [revenue, sales, net sales, turnover, income from sales]
+  definition: >-
+    The default meaning of "revenue" or "sales". Gross revenue minus discounts minus refunds,
+    on completed orders only (orders.status = 'completed'). Cancelled and pending orders are
+    excluded. Shipping fees are not revenue. Refunds count against the period of the original
+    order_date, not the return_date.
+  sql: |-
+    SELECT SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct))
+           - COALESCE(SUM(r.refund_amount), 0) AS net_revenue
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed'
+
+- term: Gross revenue
+  aliases: [gross sales, revenue before discounts, list revenue]
+  definition: >-
+    Units times unit price before discounts and refunds, on completed orders.
+  sql: |-
+    SUM(oi.quantity * oi.unit_price)   -- orders with status = 'completed'
+
+- term: Discounts
+  aliases: [discount amount, markdowns, promo discounts, discount rate]
+  definition: >-
+    Money taken off by promo codes and Enterprise contract discounts, on completed orders.
+    Discount rate = discounts / gross revenue.
+  sql: |-
+    SUM(oi.quantity * oi.unit_price * oi.discount_pct)   -- orders with status = 'completed'
+
+- term: Refunds
+  aliases: [refund amount, money refunded]
+  definition: >-
+    returns.refund_amount for lines on completed orders. In revenue figures, refunds belong to
+    the order_date period. Use returns.return_date only when the question is about when returns
+    happened (for example "refunds issued in September").
+  sql: |-
+    SUM(r.refund_amount)   -- returns r JOIN order_items oi JOIN orders o, o.status = 'completed'
+
+- term: Return rate
+  aliases: [returns rate, rate of returns, percent returned]
+  definition: >-
+    Units returned divided by units sold, for lines on completed orders, grouped by the
+    order_date period. Express as a fraction or a percentage.
+  sql: |-
+    SELECT 1.0 * COALESCE(SUM(r.quantity), 0) / SUM(oi.quantity) AS return_rate
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed'
+
+- term: Units sold
+  aliases: [units, quantity sold, volume, items sold]
+  definition: >-
+    SUM(order_items.quantity) on completed orders, before returns. "Net units" means units sold
+    minus units returned.
+  sql: |-
+    SUM(oi.quantity)   -- orders with status = 'completed'
+
+- term: Order count
+  aliases: [orders, number of orders, order volume]
+  definition: >-
+    Number of completed orders, unless the question asks about cancelled, pending or all orders.
+  sql: |-
+    COUNT(DISTINCT o.order_id)   -- WHERE o.status = 'completed'
+
+- term: Cost of goods sold (COGS)
+  aliases: [cogs, cost of sales, product cost]
+  definition: >-
+    Units kept by customers (units sold minus units returned) times products.unit_cost, on
+    completed orders. Returned units go back to stock and carry no cost.
+  sql: |-
+    SUM((oi.quantity - COALESCE(r.quantity, 0)) * p.unit_cost)
+    -- orders o JOIN order_items oi JOIN products p LEFT JOIN returns r; o.status = 'completed'
+
+- term: Gross margin
+  aliases: [margin, gross profit, gross margin percent, margin percent, profitability]
+  definition: >-
+    Net revenue minus COGS. Gross margin % = gross margin / net revenue.
+  sql: |-
+    SELECT (SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0))
+           - SUM((oi.quantity - COALESCE(r.quantity, 0)) * p.unit_cost) AS gross_margin
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed'
+
+- term: Average order value (AOV)
+  aliases: [aov, average order size, average basket, basket size, average ticket]
+  definition: >-
+    Net revenue divided by the number of completed orders in the same period and slice.
+  sql: |-
+    (net revenue) / COUNT(DISTINCT o.order_id)   -- completed orders only
+
+- term: Active customer
+  aliases: [active customers, active accounts, active buyers]
+  definition: >-
+    A customer with at least one completed order in the 90 days before today, that is
+    order_date from 2026-07-03 through 2026-09-30.
+  sql: |-
+    SELECT COUNT(DISTINCT o.customer_id)
+    FROM orders o
+    WHERE o.status = 'completed'
+      AND o.order_date >= date('2026-10-01', '-90 days') AND o.order_date < '2026-10-01'
+
+- term: New customer
+  aliases: [new customers, customers acquired, acquired customers, first-time buyers, new buyers]
+  definition: >-
+    A customer whose first completed order falls in the period. Signing up without ordering
+    does not count. Order history starts on 2024-04-01, so FY2025 also counts accounts that
+    registered before the store opened.
+  sql: |-
+    SELECT COUNT(*) FROM (
+      SELECT customer_id, MIN(order_date) AS first_order
+      FROM orders WHERE status = 'completed' GROUP BY customer_id
+    ) WHERE first_order BETWEEN :start AND :end
+
+- term: Repeat purchase rate
+  aliases: [repeat customers, repeat rate, returning customers, customer retention within a period]
+  definition: >-
+    Among customers with at least one completed order in the period, the share with two or
+    more completed orders in that same period.
+  sql: |-
+    SELECT 1.0 * SUM(n >= 2) / COUNT(*) FROM (
+      SELECT customer_id, COUNT(*) AS n FROM orders
+      WHERE status = 'completed' AND order_date BETWEEN :start AND :end
+      GROUP BY customer_id)
+
+- term: Churned customer
+  aliases: [churn, churn rate, lapsed customers, lost customers, inactive customers]
+  definition: >-
+    A customer with at least one completed order whose most recent completed order was more
+    than 180 days before today, that is before 2026-04-04. Churn rate = churned customers /
+    customers with at least one completed order.
+  sql: |-
+    SELECT 1.0 * SUM(last_order < date('2026-10-01', '-180 days')) / COUNT(*) AS churn_rate
+    FROM (SELECT customer_id, MAX(order_date) AS last_order
+          FROM orders WHERE status = 'completed' GROUP BY customer_id)
+
+- term: Customer acquisition cost (CAC)
+  aliases: [cac, blended cac, cost per acquisition, cost to acquire a customer]
+  definition: >-
+    Marketing spend in the period divided by new customers in the period. Blended CAC uses
+    all channels. CAC by channel = that channel's spend / new customers whose
+    customers.acquisition_channel is that channel. marketing_spend.month is 'YYYY-MM'.
+  sql: |-
+    -- spend: SELECT SUM(spend) FROM marketing_spend WHERE month BETWEEN '2025-04' AND '2026-03'
+    -- divided by new customers (see "New customer") for the same period
+
+- term: Late shipment
+  aliases: [late orders, on-time rate, on-time shipping, shipping delays, sla]
+  definition: >-
+    A completed order shipped more than 3 days after its order_date. On-time rate = 1 - late
+    shipments / completed orders.
+  sql: |-
+    SELECT 1.0 * SUM(julianday(o.ship_date) - julianday(o.order_date) > 3) / COUNT(*) AS late_rate
+    FROM orders o WHERE o.status = 'completed'
+
+- term: Days to ship
+  aliases: [fulfillment time, shipping time, lead time, time to ship]
+  definition: >-
+    julianday(ship_date) - julianday(order_date) for completed orders.
+  sql: |-
+    AVG(julianday(o.ship_date) - julianday(o.order_date))   -- o.status = 'completed'
+
+- term: Fiscal year and quarters
+  aliases: [fy, fiscal year, fiscal quarter, financial year, quarter, q1, q2, q3, q4]
+  definition: >-
+    Fiscal years run April 1 to March 31 and are named for the calendar year they end in.
+    FY2025 = 2024-04-01..2025-03-31, FY2026 = 2025-04-01..2026-03-31, FY2027 = 2026-04-01..
+    2027-03-31. Q1 = Apr-Jun, Q2 = Jul-Sep, Q3 = Oct-Dec, Q4 = Jan-Mar. A quarter means a
+    fiscal quarter unless the user says "calendar". The calendar table has fiscal_year and
+    fiscal_quarter for every date.
+  sql: |-
+    JOIN calendar cal ON cal.date = o.order_date WHERE cal.fiscal_year = 2026 AND cal.fiscal_quarter = 3
+
+- term: Relative periods
+  aliases: [last quarter, this quarter, this year, year to date, ytd, last month, last year, trailing twelve months, ttm, recent]
+  definition: >-
+    Today is 2026-10-01 and data runs to 2026-09-30. Last quarter = FY2027 Q2 (2026-07-01..
+    2026-09-30). This fiscal year / year to date = FY2027 through 2026-09-30. Last fiscal year
+    = FY2026. Last month = September 2026. Trailing twelve months = 2025-10-01..2026-09-30.
+    "This quarter" (FY2027 Q3) has no data yet.
+
+- term: Year-over-year growth
+  aliases: [yoy, yoy growth, growth rate, versus last year, compared with last year, same period last year]
+  definition: >-
+    (value in the period - value in the same period one year earlier) / value one year earlier.
+    For a fiscal quarter, compare with the same fiscal quarter of the previous fiscal year.
+
+- term: Target attainment
+  aliases: [attainment, quota attainment, versus target, against target, plan attainment]
+  definition: >-
+    Net revenue divided by targets.net_revenue_target for the same region, fiscal_year and
+    fiscal_quarter. Region comes from the customer's region_id.
+
+- term: Business customers
+  aliases: [b2b, business accounts, companies, corporate customers, consumers, b2c, segments]
+  definition: >-
+    Business customers are the 'Small Business' and 'Enterprise' segments. Consumers (B2C) are
+    the 'Consumer' segment.
+
+- term: Rep sales
+  aliases: [sales rep revenue, account manager revenue, rep performance, rep's sales]
+  definition: >-
+    A sales rep's sales = net revenue from completed orders of the customers assigned to that
+    rep (customers.rep_id). Consumer customers have no rep.
+
+- term: Discount programs
+  aliases: [promo codes, promotions, welcome10, summer25, bulk15, contract discount]
+  definition: >-
+    WELCOME10 = 10% off a consumer's first order. SUMMER25 = 25% off consumer orders from
+    2025-06-15 to 2025-07-15. BULK15 = 15% off Small Business orders of 15 or more units.
+    Enterprise accounts get an 8% contract discount on every line (discount_pct = 0.08, no
+    promo code).
+
+- term: Top products
+  aliases: [best sellers, best-selling products, top sellers, leading products, best products]
+  definition: >-
+    Rank by net revenue unless the user names another measure (units, margin, orders).
+
+- term: Order channel vs acquisition channel
+  aliases: [channel, sales channel, marketing channel, where orders come from]
+  definition: >-
+    orders.channel is where an order was placed (Web, Mobile App, Marketplace, Phone).
+    customers.acquisition_channel is how the customer was first acquired (Organic Search,
+    Paid Search, Social, Referral, Partner) and matches marketing_spend.channel. In order or
+    sales questions "channel" means orders.channel; in marketing or CAC questions it means the
+    acquisition channel.
+
+- term: Shipping fees
+  aliases: [shipping revenue, delivery fees, shipping charges]
+  definition: >-
+    orders.shipping_fee on completed orders. Shipping fees are reported separately and are not
+    part of net revenue.
+
+- term: Discontinued products
+  aliases: [inactive products, retired products, active products]
+  definition: >-
+    products.is_active = 0 means discontinued; 1 means still sold.

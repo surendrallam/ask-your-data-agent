@@ -1,0 +1,539 @@
+# Benchmark: 45 answerable questions and 5 that should get a clarifying question.
+#
+# Grading is by execution, not by wording: the agent's final SQL (the query it cites
+# in submit_answer) is re-run and its rows are compared with the rows of the
+# reference SQL below. Every reference value must appear in the matching row of
+# the agent's result; extra columns are fine. Counts must match exactly, money to
+# 0.01% and ratios to 0.06 percentage points (fraction or percent both accepted).
+#   ordered: rows must come in the same order
+#   ratio: numeric values are rates, so 0.1234 and 12.34 both match
+#   prefix: the agent may return more rows if the reference rows come first
+#
+# The reference SQL follows the glossary in data/glossary.yaml. Today is 2026-10-01.
+
+- id: q01
+  tags: [basic]
+  question: What was total net revenue in FY2026?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q02
+  tags: [basic]
+  question: How many completed orders did we have in FY2026?
+  sql: |-
+    SELECT COUNT(*) FROM orders
+    WHERE status = 'completed' AND order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q03
+  tags: [basic]
+  question: What was gross revenue in Q1 FY2027?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price), 2)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2026-04-01' AND '2026-06-30'
+
+- id: q04
+  tags: [basic]
+  question: How many customer accounts are in each segment?
+  sql: |-
+    SELECT segment, COUNT(*) FROM customers GROUP BY segment
+
+- id: q05
+  tags: [basic]
+  question: How many orders were cancelled in FY2026?
+  sql: |-
+    SELECT COUNT(*) FROM orders
+    WHERE status = 'cancelled' AND order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q06
+  tags: [basic]
+  question: What is the list price of the Ridgeline UL 1P Tent?
+  sql: |-
+    SELECT list_price FROM products WHERE product_name = 'Ridgeline UL 1P Tent'
+
+- id: q07
+  tags: [basic, ranking]
+  question: Show net revenue by region for last quarter, highest first.
+  ordered: true
+  sql: |-
+    SELECT rg.region_name,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2) AS net
+    FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+    JOIN regions rg ON rg.region_id = c.region_id
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2026-07-01' AND '2026-09-30'
+    GROUP BY rg.region_name ORDER BY net DESC
+
+- id: q08
+  tags: [basic]
+  question: What were total discounts in FY2026?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * oi.discount_pct), 2)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q09
+  tags: [basic]
+  question: How many units of the Hiking Socks 3-Pack did we sell in FY2026?
+  sql: |-
+    SELECT SUM(oi.quantity)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    WHERE o.status = 'completed' AND p.product_name = 'Hiking Socks 3-Pack'
+      AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q10
+  tags: [time]
+  question: Show net revenue for each fiscal quarter of FY2026.
+  ordered: true
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN calendar cal ON cal.date = o.order_date
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND cal.fiscal_year = 2026
+    GROUP BY cal.fiscal_quarter ORDER BY cal.fiscal_quarter
+
+- id: q11
+  tags: [time, ranking]
+  question: Which calendar month of 2025 had the highest net revenue?
+  prefix: true
+  sql: |-
+    SELECT ROUND(net, 2) FROM (
+      SELECT strftime('%Y-%m', o.order_date) AS m,
+             SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0) AS net
+      FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+      LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+      WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-01-01' AND '2025-12-31'
+      GROUP BY m ORDER BY net DESC LIMIT 1)
+
+- id: q12
+  tags: [time]
+  question: What is net revenue so far this fiscal year?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2026-04-01' AND '2026-09-30'
+
+- id: q13
+  tags: [time, metric]
+  question: What was the year-over-year growth rate of net revenue in Q2 FY2027?
+  ratio: true
+  sql: |-
+    WITH q AS (
+      SELECT cal.fiscal_year AS fy,
+             SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0) AS net
+      FROM orders o JOIN calendar cal ON cal.date = o.order_date
+      JOIN order_items oi ON oi.order_id = o.order_id
+      LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+      WHERE o.status = 'completed' AND cal.fiscal_quarter = 2 AND cal.fiscal_year IN (2026, 2027)
+      GROUP BY cal.fiscal_year)
+    SELECT ROUND((cur.net - prev.net) / prev.net, 4)
+    FROM q cur JOIN q prev ON prev.fy = 2026 WHERE cur.fy = 2027
+
+- id: q14
+  tags: [time]
+  question: What was net revenue last month?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2026-09-01' AND '2026-09-30'
+
+- id: q15
+  tags: [time]
+  question: What was net revenue over the trailing twelve months?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-10-01' AND '2026-09-30'
+
+- id: q16
+  tags: [time]
+  question: How much net revenue came from orders placed on weekends in FY2026?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN calendar cal ON cal.date = o.order_date
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND cal.fiscal_year = 2026 AND cal.is_weekend = 1
+
+- id: q17
+  tags: [ranking]
+  question: What were the top 5 products by net revenue in FY2026?
+  ordered: true
+  prefix: true
+  sql: |-
+    SELECT p.product_name,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2) AS net
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+    GROUP BY p.product_id ORDER BY net DESC LIMIT 5
+
+- id: q18
+  tags: [ranking]
+  question: Which department had the highest net revenue in FY2026, and how much was it?
+  prefix: true
+  sql: |-
+    SELECT cat.department,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2) AS net
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    JOIN categories cat ON cat.category_id = p.category_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+    GROUP BY cat.department ORDER BY net DESC LIMIT 1
+
+- id: q19
+  tags: [ranking]
+  question: Who were our top 3 customers by net revenue in FY2026?
+  ordered: true
+  prefix: true
+  sql: |-
+    SELECT c.customer_name,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2) AS net
+    FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+    GROUP BY c.customer_id ORDER BY net DESC LIMIT 3
+
+- id: q20
+  tags: [ranking]
+  question: Which sales rep generated the most net revenue in FY2026?
+  prefix: true
+  sql: |-
+    SELECT s.rep_name,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2) AS net
+    FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+    JOIN sales_reps s ON s.rep_id = c.rep_id
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+    GROUP BY s.rep_id ORDER BY net DESC LIMIT 1
+
+- id: q21
+  tags: [ranking]
+  question: Break down FY2026 net revenue by order channel.
+  sql: |-
+    SELECT o.channel,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+    GROUP BY o.channel
+
+- id: q22
+  tags: [ranking, metric]
+  question: Among products with at least 200 units sold in FY2026, which had the highest return rate?
+  ratio: true
+  prefix: true
+  sql: |-
+    SELECT p.product_name, ROUND(1.0 * COALESCE(SUM(r.quantity), 0) / SUM(oi.quantity), 4) AS rate
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+    GROUP BY p.product_id HAVING SUM(oi.quantity) >= 200
+    ORDER BY rate DESC LIMIT 1
+
+- id: q23
+  tags: [ranking, metric]
+  question: Which region has the most active customers?
+  prefix: true
+  sql: |-
+    SELECT rg.region_name, COUNT(DISTINCT o.customer_id) AS active
+    FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+    JOIN regions rg ON rg.region_id = c.region_id
+    WHERE o.status = 'completed' AND o.order_date >= date('2026-10-01', '-90 days') AND o.order_date < '2026-10-01'
+    GROUP BY rg.region_name ORDER BY active DESC LIMIT 1
+
+- id: q24
+  tags: [metric]
+  question: What share of FY2026 net revenue came from Enterprise customers?
+  ratio: true
+  sql: |-
+    SELECT ROUND(SUM(CASE WHEN c.segment = 'Enterprise' THEN v END) / SUM(v), 4) FROM (
+      SELECT o.customer_id,
+             oi.quantity * oi.unit_price * (1 - oi.discount_pct) - COALESCE(r.refund_amount, 0) AS v
+      FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+      LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+      WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31') x
+    JOIN customers c ON c.customer_id = x.customer_id
+
+- id: q25
+  tags: [metric]
+  question: How many active customers do we have?
+  sql: |-
+    SELECT COUNT(DISTINCT customer_id) FROM orders
+    WHERE status = 'completed' AND order_date >= date('2026-10-01', '-90 days') AND order_date < '2026-10-01'
+
+- id: q26
+  tags: [metric]
+  question: What was the average order value for Consumer customers in FY2026?
+  sql: |-
+    SELECT ROUND((SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0))
+                 / COUNT(DISTINCT o.order_id), 2)
+    FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND c.segment = 'Consumer'
+      AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q27
+  tags: [metric]
+  question: What was our gross margin percentage in FY2026?
+  ratio: true
+  sql: |-
+    SELECT ROUND(((SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0))
+                  - SUM((oi.quantity - COALESCE(r.quantity, 0)) * p.unit_cost))
+                 / (SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0)), 4)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q28
+  tags: [metric]
+  question: What was the return rate for the Apparel department in FY2026?
+  ratio: true
+  sql: |-
+    SELECT ROUND(1.0 * COALESCE(SUM(r.quantity), 0) / SUM(oi.quantity), 4)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    JOIN categories cat ON cat.category_id = p.category_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND cat.department = 'Apparel'
+      AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q29
+  tags: [metric]
+  question: What was the on-time shipping rate in the West region last quarter?
+  ratio: true
+  sql: |-
+    SELECT ROUND(1 - 1.0 * SUM(julianday(o.ship_date) - julianday(o.order_date) > 3) / COUNT(*), 4)
+    FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+    JOIN regions rg ON rg.region_id = c.region_id
+    WHERE o.status = 'completed' AND rg.region_name = 'West'
+      AND o.order_date BETWEEN '2026-07-01' AND '2026-09-30'
+
+- id: q30
+  tags: [metric]
+  question: What was each region's target attainment in Q1 FY2027?
+  ratio: true
+  sql: |-
+    WITH a AS (
+      SELECT c.region_id,
+             SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0) AS net
+      FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+      JOIN order_items oi ON oi.order_id = o.order_id
+      LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+      WHERE o.status = 'completed' AND o.order_date BETWEEN '2026-04-01' AND '2026-06-30'
+      GROUP BY c.region_id)
+    SELECT rg.region_name, ROUND(a.net / t.net_revenue_target, 4)
+    FROM a JOIN regions rg ON rg.region_id = a.region_id
+    JOIN targets t ON t.region_id = a.region_id AND t.fiscal_year = 2027 AND t.fiscal_quarter = 1
+
+- id: q31
+  tags: [metric]
+  question: How many new customers did we acquire in FY2026?
+  sql: |-
+    SELECT COUNT(*) FROM (
+      SELECT customer_id, MIN(order_date) AS first_order FROM orders
+      WHERE status = 'completed' GROUP BY customer_id)
+    WHERE first_order BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q32
+  tags: [metric]
+  question: What was our blended customer acquisition cost in FY2026?
+  sql: |-
+    SELECT ROUND(
+      (SELECT SUM(spend) FROM marketing_spend WHERE month BETWEEN '2025-04' AND '2026-03') * 1.0 /
+      (SELECT COUNT(*) FROM (SELECT customer_id, MIN(order_date) AS f FROM orders
+                             WHERE status = 'completed' GROUP BY customer_id)
+       WHERE f BETWEEN '2025-04-01' AND '2026-03-31'), 2)
+
+- id: q33
+  tags: [metric]
+  question: What is our customer churn rate as of today?
+  ratio: true
+  sql: |-
+    SELECT ROUND(1.0 * SUM(last_order < date('2026-10-01', '-180 days')) / COUNT(*), 4)
+    FROM (SELECT customer_id, MAX(order_date) AS last_order
+          FROM orders WHERE status = 'completed' GROUP BY customer_id)
+
+- id: q34
+  tags: [metric]
+  question: What was the repeat purchase rate among Consumer customers in FY2026?
+  ratio: true
+  sql: |-
+    SELECT ROUND(1.0 * SUM(n >= 2) / COUNT(*), 4) FROM (
+      SELECT o.customer_id, COUNT(*) AS n
+      FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+      WHERE o.status = 'completed' AND c.segment = 'Consumer'
+        AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+      GROUP BY o.customer_id)
+
+- id: q35
+  tags: [multistep, ranking]
+  question: Which product's net revenue grew the most in dollars from FY2025 to FY2026?
+  prefix: true
+  sql: |-
+    WITH y AS (
+      SELECT oi.product_id, cal.fiscal_year AS fy,
+             SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0) AS net
+      FROM orders o JOIN calendar cal ON cal.date = o.order_date
+      JOIN order_items oi ON oi.order_id = o.order_id
+      LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+      WHERE o.status = 'completed' AND cal.fiscal_year IN (2025, 2026)
+      GROUP BY oi.product_id, cal.fiscal_year)
+    SELECT p.product_name,
+           ROUND(COALESCE(SUM(CASE WHEN fy = 2026 THEN net END), 0)
+                 - COALESCE(SUM(CASE WHEN fy = 2025 THEN net END), 0), 2) AS growth
+    FROM y JOIN products p ON p.product_id = y.product_id
+    GROUP BY p.product_id ORDER BY growth DESC LIMIT 1
+
+- id: q36
+  tags: [multistep, ranking]
+  question: For each department, which product had the highest net revenue in FY2026?
+  sql: |-
+    WITH pn AS (
+      SELECT cat.department, p.product_name,
+             SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0) AS net
+      FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+      JOIN products p ON p.product_id = oi.product_id
+      JOIN categories cat ON cat.category_id = p.category_id
+      LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+      WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+      GROUP BY p.product_id)
+    SELECT department, product_name FROM pn a
+    WHERE net = (SELECT MAX(net) FROM pn b WHERE b.department = a.department)
+
+- id: q37
+  tags: [multistep]
+  question: How much net revenue came from orders that used the SUMMER25 promo code?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.promo_code = 'SUMMER25'
+
+- id: q38
+  tags: [multistep, metric]
+  question: What percentage of FY2026 net revenue came from customers acquired through Paid Search?
+  ratio: true
+  sql: |-
+    SELECT ROUND(SUM(CASE WHEN c.acquisition_channel = 'Paid Search' THEN v END) / SUM(v), 4) FROM (
+      SELECT o.customer_id,
+             oi.quantity * oi.unit_price * (1 - oi.discount_pct) - COALESCE(r.refund_amount, 0) AS v
+      FROM orders o JOIN order_items oi ON oi.order_id = o.order_id
+      LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+      WHERE o.status = 'completed' AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31') x
+    JOIN customers c ON c.customer_id = x.customer_id
+
+- id: q39
+  tags: [multistep, metric]
+  question: In which month of FY2027 so far was the West region's late-shipment rate highest, and what was it?
+  ratio: true
+  prefix: true
+  sql: |-
+    SELECT ROUND(rate, 4) FROM (
+      SELECT strftime('%Y-%m', o.order_date) AS m,
+             1.0 * SUM(julianday(o.ship_date) - julianday(o.order_date) > 3) / COUNT(*) AS rate
+      FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+      JOIN regions rg ON rg.region_id = c.region_id
+      WHERE o.status = 'completed' AND rg.region_name = 'West'
+        AND o.order_date BETWEEN '2026-04-01' AND '2026-09-30'
+      GROUP BY m ORDER BY rate DESC LIMIT 1)
+
+- id: q40
+  tags: [multistep]
+  question: How many customer accounts have never placed a completed order?
+  sql: |-
+    SELECT COUNT(*) FROM customers c
+    WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.customer_id AND o.status = 'completed')
+
+- id: q41
+  tags: [metric]
+  question: What was the average number of days to ship completed orders in FY2026?
+  sql: |-
+    SELECT ROUND(AVG(julianday(ship_date) - julianday(order_date)), 4) FROM orders
+    WHERE status = 'completed' AND order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q42
+  tags: [entity]
+  question: What was Apex Outfitters' net revenue in FY2026?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND c.customer_name = 'Apex Outfitters'
+      AND o.order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+- id: q43
+  tags: [entity]
+  question: What were Priya Sharma's sales last quarter?
+  sql: |-
+    SELECT ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0), 2)
+    FROM orders o JOIN customers c ON c.customer_id = o.customer_id
+    JOIN sales_reps s ON s.rep_id = c.rep_id
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND s.rep_name = 'Priya Sharma'
+      AND o.order_date BETWEEN '2026-07-01' AND '2026-09-30'
+
+- id: q44
+  tags: [basic]
+  question: How many completed orders used each promo code in FY2026?
+  sql: |-
+    SELECT promo_code, COUNT(*) FROM orders
+    WHERE status = 'completed' AND promo_code IS NOT NULL
+      AND order_date BETWEEN '2025-04-01' AND '2026-03-31'
+    GROUP BY promo_code
+
+- id: q45
+  tags: [basic]
+  question: How much did we collect in shipping fees in FY2026?
+  sql: |-
+    SELECT ROUND(SUM(shipping_fee), 2) FROM orders
+    WHERE status = 'completed' AND order_date BETWEEN '2025-04-01' AND '2026-03-31'
+
+# ---------------------------------------------------------------- clarification
+- id: c01
+  tags: [clarify]
+  expect: clarify
+  question: What were Priya's sales last quarter?
+  why: Two sales reps are named Priya (Priya Sharma, North; Priya Nair, West).
+
+- id: c02
+  tags: [clarify]
+  expect: clarify
+  question: How much did Summit Supply spend with us in FY2026?
+  why: Two accounts match (Summit Supply Co., Enterprise; Summit Supply Partners, Small Business).
+
+- id: c03
+  tags: [clarify]
+  expect: clarify
+  question: Show me the sales trend for Apex.
+  why: Apex is both a customer (Apex Outfitters) and a product brand.
+
+- id: c04
+  tags: [clarify]
+  expect: clarify
+  question: Which region performed best last quarter?
+  why: No measure is named and the glossary sets no default for "performance".
+
+- id: c05
+  tags: [clarify]
+  expect: clarify
+  question: What was net revenue in March?
+  why: The data holds March 2025 and March 2026.
