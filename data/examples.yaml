@@ -1,0 +1,160 @@
+# Verified example queries. The agent retrieves the closest ones as patterns.
+# None of these questions appear in the benchmark.
+
+- question: Net revenue by fiscal quarter for FY2025
+  sql: |-
+    SELECT cal.fiscal_quarter,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct))
+                 - COALESCE(SUM(r.refund_amount), 0), 2) AS net_revenue
+    FROM orders o
+    JOIN calendar cal ON cal.date = o.order_date
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND cal.fiscal_year = 2025
+    GROUP BY cal.fiscal_quarter
+    ORDER BY cal.fiscal_quarter
+
+- question: Which three categories sold the most units in FY2025?
+  sql: |-
+    SELECT c.category_name, SUM(oi.quantity) AS units
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    JOIN categories c ON c.category_id = p.category_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2024-04-01' AND '2025-03-31'
+    GROUP BY c.category_name
+    ORDER BY units DESC
+    LIMIT 3
+
+- question: Monthly net revenue from Consumer customers in calendar 2025
+  sql: |-
+    SELECT strftime('%Y-%m', o.order_date) AS month,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct))
+                 - COALESCE(SUM(r.refund_amount), 0), 2) AS net_revenue
+    FROM orders o
+    JOIN customers c ON c.customer_id = o.customer_id
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND c.segment = 'Consumer'
+      AND o.order_date BETWEEN '2025-01-01' AND '2025-12-31'
+    GROUP BY month
+    ORDER BY month
+
+- question: Gross margin percentage by department in FY2025
+  sql: |-
+    SELECT cat.department,
+           ROUND(1.0 * ((SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0))
+                 - SUM((oi.quantity - COALESCE(r.quantity, 0)) * p.unit_cost))
+                 / (SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0)), 4)
+             AS gross_margin_pct
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    JOIN products p ON p.product_id = oi.product_id
+    JOIN categories cat ON cat.category_id = p.category_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2024-04-01' AND '2025-03-31'
+    GROUP BY cat.department
+    ORDER BY gross_margin_pct DESC
+
+- question: Target attainment by region for FY2026 Q4
+  sql: |-
+    WITH actual AS (
+      SELECT c.region_id,
+             SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0) AS net_revenue
+      FROM orders o
+      JOIN customers c ON c.customer_id = o.customer_id
+      JOIN calendar cal ON cal.date = o.order_date
+      JOIN order_items oi ON oi.order_id = o.order_id
+      LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+      WHERE o.status = 'completed' AND cal.fiscal_year = 2026 AND cal.fiscal_quarter = 4
+      GROUP BY c.region_id)
+    SELECT rg.region_name, ROUND(a.net_revenue, 2) AS net_revenue, t.net_revenue_target,
+           ROUND(a.net_revenue / t.net_revenue_target, 4) AS attainment
+    FROM actual a
+    JOIN regions rg ON rg.region_id = a.region_id
+    JOIN targets t ON t.region_id = a.region_id AND t.fiscal_year = 2026 AND t.fiscal_quarter = 4
+    ORDER BY attainment DESC
+
+- question: Top 5 customers by net revenue in FY2025
+  sql: |-
+    SELECT c.customer_name, c.segment,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct))
+                 - COALESCE(SUM(r.refund_amount), 0), 2) AS net_revenue
+    FROM orders o
+    JOIN customers c ON c.customer_id = o.customer_id
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2024-04-01' AND '2025-03-31'
+    GROUP BY c.customer_id
+    ORDER BY net_revenue DESC
+    LIMIT 5
+
+- question: Average days to ship by region in FY2025
+  sql: |-
+    SELECT rg.region_name,
+           ROUND(AVG(julianday(o.ship_date) - julianday(o.order_date)), 2) AS avg_days_to_ship
+    FROM orders o
+    JOIN customers c ON c.customer_id = o.customer_id
+    JOIN regions rg ON rg.region_id = c.region_id
+    WHERE o.status = 'completed' AND o.order_date BETWEEN '2024-04-01' AND '2025-03-31'
+    GROUP BY rg.region_name
+    ORDER BY avg_days_to_ship DESC
+
+- question: Net revenue from Small Business customers by sales rep in FY2026 Q1
+  sql: |-
+    SELECT s.rep_name,
+           ROUND(SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct))
+                 - COALESCE(SUM(r.refund_amount), 0), 2) AS net_revenue
+    FROM orders o
+    JOIN customers c ON c.customer_id = o.customer_id
+    JOIN sales_reps s ON s.rep_id = c.rep_id
+    JOIN calendar cal ON cal.date = o.order_date
+    JOIN order_items oi ON oi.order_id = o.order_id
+    LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+    WHERE o.status = 'completed' AND c.segment = 'Small Business'
+      AND cal.fiscal_year = 2026 AND cal.fiscal_quarter = 1
+    GROUP BY s.rep_id
+    ORDER BY net_revenue DESC
+
+- question: How many accounts signed up in calendar 2025 but have never completed an order?
+  sql: |-
+    SELECT COUNT(*) AS accounts
+    FROM customers c
+    WHERE c.signup_date BETWEEN '2025-01-01' AND '2025-12-31'
+      AND NOT EXISTS (SELECT 1 FROM orders o
+                      WHERE o.customer_id = c.customer_id AND o.status = 'completed')
+
+- question: Discount rate by promo code in FY2025
+  sql: |-
+    SELECT o.promo_code,
+           ROUND(SUM(oi.quantity * oi.unit_price * oi.discount_pct) / SUM(oi.quantity * oi.unit_price), 4) AS discount_rate
+    FROM orders o
+    JOIN order_items oi ON oi.order_id = o.order_id
+    WHERE o.status = 'completed' AND o.promo_code IS NOT NULL
+      AND o.order_date BETWEEN '2024-04-01' AND '2025-03-31'
+    GROUP BY o.promo_code
+
+- question: Year-over-year growth in net revenue for FY2026 Q3 by segment
+  sql: |-
+    WITH q AS (
+      SELECT c.segment, cal.fiscal_year,
+             SUM(oi.quantity * oi.unit_price * (1 - oi.discount_pct)) - COALESCE(SUM(r.refund_amount), 0) AS net_revenue
+      FROM orders o
+      JOIN customers c ON c.customer_id = o.customer_id
+      JOIN calendar cal ON cal.date = o.order_date
+      JOIN order_items oi ON oi.order_id = o.order_id
+      LEFT JOIN returns r ON r.order_item_id = oi.order_item_id
+      WHERE o.status = 'completed' AND cal.fiscal_quarter = 3 AND cal.fiscal_year IN (2025, 2026)
+      GROUP BY c.segment, cal.fiscal_year)
+    SELECT cur.segment, ROUND(cur.net_revenue, 2) AS fy2026_q3, ROUND(prev.net_revenue, 2) AS fy2025_q3,
+           ROUND((cur.net_revenue - prev.net_revenue) / prev.net_revenue, 4) AS yoy_growth
+    FROM q cur JOIN q prev ON prev.segment = cur.segment AND prev.fiscal_year = 2025
+    WHERE cur.fiscal_year = 2026
+    ORDER BY yoy_growth DESC
+
+- question: Look up customers whose name contains a word (check for several matches before filtering)
+  sql: |-
+    SELECT customer_id, customer_name, segment, region_id
+    FROM customers
+    WHERE customer_name LIKE '%Ridge%'
+    ORDER BY customer_name

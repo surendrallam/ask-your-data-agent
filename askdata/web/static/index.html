@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ask your data</title>
+  <meta name="description" content="Plain-English questions over a sample sales database, answered by a Claude agent that shows its SQL.">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1>Ask your data</h1>
+      <p class="sub">Plain-English questions about a sample sales database. Every answer shows the SQL behind it.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="banner" class="banner" role="status" hidden></div>
+
+    <form id="ask" class="ask" autocomplete="off">
+      <label for="q" class="sr-only">Your question</label>
+      <textarea id="q" rows="2" maxlength="500" required
+        placeholder="For example: what were the top 5 products by net revenue in FY2026?"></textarea>
+      <div class="ask-row">
+        <label class="model">Model
+          <select id="model"></select>
+        </label>
+        <button type="submit" id="go">Ask</button>
+      </div>
+    </form>
+
+    <div id="examples" class="examples" aria-label="Example questions"></div>
+    <p class="dataset" id="dataset"></p>
+
+    <section id="results" aria-live="polite"></section>
+  </main>
+
+  <footer class="wrap foot">
+    Trailhead Goods is a fictional retailer; every row is synthetic. Read-only SQL, guarded by SQLite itself.
+  </footer>
+
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>
