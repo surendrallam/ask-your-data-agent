@@ -23,6 +23,7 @@ from pathlib import Path
 import yaml
 
 from askdata.config import CONFIGS, DEFAULT_EFFORT, MODELS, ROOT
+from askdata.prompts import PROMPT_VERSION
 from bench.grade import grade, reference_rows
 
 QUESTIONS = ROOT / "bench" / "questions.yaml"
@@ -71,6 +72,7 @@ def record(q: dict, config: str, effort: str, rep: int, r) -> dict:
     g = grade(q, d)
     return {
         "qid": q["id"], "config": config, "effort": effort, "rep": rep, "tags": q.get("tags", []),
+        "prompt_version": PROMPT_VERSION,
         "expect": q.get("expect", "answer"), "question": q["question"],
         "passed": g.passed, "reason": g.reason,
         "status": d["status"], "answer": d["answer"], "sql": d["sql"], "query_id": d["query_id"],
