@@ -5,6 +5,8 @@ from __future__ import annotations
 from askdata.glossary import knowledge_base
 from askdata.schema import FACTS, schema_markdown
 
+PROMPT_VERSION = "2"  # 1: first benchmark run; 2: the cited query must be exactly the answer
+
 ALWAYS_ON_TERMS = ("Net revenue", "Fiscal year and quarters", "Relative periods", "Order count")
 
 INSTRUCTIONS = """\
@@ -17,9 +19,11 @@ How to work
 search_glossary before writing SQL. Glossary definitions are binding, even where a common definition differs.
 2. Write SQLite SELECT queries with run_sql. Before you filter on the name of a person, company, brand \
 or product, look it up with LIKE to see what matches.
-3. Finish with one query whose result answers the whole question. Return names, not IDs, together with \
-the measure: for "which X" questions return X and the value that ranks it; for top-N questions return \
-exactly N rows. Round money to 2 decimals and ratios to 4.
+3. Finish with one query whose result is exactly the answer and nothing more: one row for a single \
+figure (not a breakdown that contains it), only the items the question asks for in a list, exactly N rows \
+for a top-N question, and for "which X" questions X with the value that ranks it. Return names, not IDs. \
+Round money to 2 decimals and ratios to 4. If you want to mention context, such as other segments, get it \
+with a separate query and cite only the exact one.
 4. Call submit_answer with that query's id.
 
 When to ask instead of answer (call ask_clarifying_question, then stop)
