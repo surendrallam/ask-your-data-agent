@@ -23,3 +23,6 @@ Small choices made during the build, with the reason for each. Newest last.
 | 2026-11-02 | Benchmark runs questions one at a time, not through the Batch API | Latency is one of the measured results, and the agent is a multi-turn tool loop. |
 | 2026-11-02 | MCP server built on the official `mcp` SDK 2.x (`MCPServer`, stdio); tested over stdio with the legacy initialize handshake | That is how Claude Desktop launches local servers. |
 | 2026-11-02 | Profile and portfolio drafts are kept outside this public repo | This repo is public; drafts are not. |
+| 2026-11-02 | **Free checks before any paid call:** `askdata check-api` (model lookup and `count_tokens`, both free) and `run_bench --dry-run --validate-with-api` (every scripted request sent to the free token counter). Free calls are logged to `runs/costs.csv` at $0 | Catches malformed requests and measures real prompt sizes (3,116 input tokens for the first request, not the 1,976 estimated from characters) before spending. |
+| 2026-11-02 | Removed 69 rows from `runs/costs.csv` that a first version of the validation run wrote for the scripted oracle's replies. They were not API calls and cost $0; the fix logs oracle replies to a scratch file | The ledger records real API calls only. |
+| 2026-11-02 | Each run records the git commit it ran from (`meta.json`) | Results can be traced to the exact code. |

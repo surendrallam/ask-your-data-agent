@@ -57,3 +57,11 @@ def test_run_budget(tmp_path):
 
 def test_worst_case_covers_max_tokens():
     assert worst_case_cost(config.OPUS, 10_000, 8_000) == pytest.approx((10_000 * 5 + 8_000 * 20) / 1e6)
+
+
+def test_free_calls_are_logged_at_zero(tmp_path):
+    led = CostLedger(tmp_path / "c.csv")
+    led.record(model=config.OPUS, usage=u(input_tokens=3116), latency_ms=90, stop_reason="count_tokens",
+               purpose="free-check", billable=False)
+    rows = list(csv.DictReader((tmp_path / "c.csv").open()))
+    assert rows[0]["input_tokens"] == "3116" and float(rows[0]["cost_usd"]) == 0 and led.total_usd == 0

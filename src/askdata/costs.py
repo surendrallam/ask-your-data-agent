@@ -151,8 +151,10 @@ class CostLedger:
         purpose: str = "app",
         question_id: str = "",
         call_no: int = 0,
+        billable: bool = True,
     ) -> float:
-        cost = call_cost(model, usage)
+        """Append one call. billable=False logs a free call (token counting, model lookup) at $0."""
+        cost = call_cost(model, usage) if billable else 0.0
         with self._lock:
             self.total_usd += cost
             if run_id:
