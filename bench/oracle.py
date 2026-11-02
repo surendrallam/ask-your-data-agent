@@ -62,9 +62,11 @@ class OracleMessages:
             return response(tool_use("run_sql", {"sql": q["gold_sql"]}))
         if "run_sql" in last_tools:
             payload = json.loads(results[-1]["content"])
+            cols, rows = payload["columns"], payload["rows"]
+            chart = "bar" if len(rows) > 1 and len(cols) > 1 else "none"
             return response(tool_use("final_answer", {
-                "answer": f"The answer is {payload['rows'][0]}.", "sql": q["gold_sql"],
-                "chart_type": "none", "chart_x": "", "chart_y": ""}))
+                "answer": f"The answer is {rows[0]}.", "sql": q["gold_sql"], "chart_type": chart,
+                "chart_x": cols[0] if chart == "bar" else "", "chart_y": cols[-1] if chart == "bar" else ""}))
         return response(SimpleNamespace(type="text", text="Done."), stop_reason="end_turn")
 
 

@@ -49,7 +49,8 @@
   .meta { font-size: 13px; color: var(--text-muted); }
   .error { color: var(--danger); }
   h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 20px 0 8px; }
-  pre { background: var(--code-bg); padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 13px; margin: 0; }
+  pre { background: var(--code-bg); padding: 12px; border-radius: 8px; font-size: 13px; margin: 0;
+        white-space: pre-wrap; overflow-wrap: anywhere; }
   .table-wrap { overflow-x: auto; max-height: 360px; border: 1px solid var(--border); border-radius: 8px; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
   th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -107,6 +108,9 @@ const EXAMPLES = [
   "Who is our best customer?",
 ];
 let conversationId = null;
+const MODEL_NAMES = { "claude-haiku-5-5": "Haiku 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-opus-5-5": "Opus 5.5" };
+// Card content width: the chart is drawn at this many pixels so its text stays 12px.
+const chartWidth = () => Math.max(280, Math.min(1200, Math.round($("ask").clientWidth - 42)));
 
 for (const ex of EXAMPLES) {
   const b = document.createElement("button");
@@ -141,7 +145,7 @@ function render(data) {
   renderTable(data.columns || [], data.rows || [], data.truncated);
   $("sql").textContent = data.sql || "";
   show($("sqlBox"), !!data.sql);
-  const models = (data.models_tried || []).join(" → ") || data.model;
+  const models = (data.models_tried || [data.model]).map((m) => MODEL_NAMES[m] || m).join(" → ");
   $("meta").textContent = `${models} · ${data.api_calls} API calls · $${data.cost_usd.toFixed(4)} · ` +
     `${(data.latency_ms / 1000).toFixed(1)} s` + (data.escalated ? ` · escalated (${data.escalation_reason})` : "");
 }
@@ -179,12 +183,12 @@ async function call(url, body) {
   } finally { $("go").disabled = false; }
 }
 
-function sendReply(text) { if (conversationId && text) call("/api/reply", { conversation_id: conversationId, reply: text }); }
+function sendReply(text) { if (conversationId && text) call("/api/reply", { conversation_id: conversationId, reply: text, chart_width: chartWidth() }); }
 
 $("ask").addEventListener("submit", (e) => {
   e.preventDefault();
   const q = $("q").value.trim();
-  if (q) { $("answer").textContent = "Thinking…"; call("/api/ask", { question: q, model: $("model").value }); }
+  if (q) { $("answer").textContent = "Thinking…"; call("/api/ask", { question: q, model: $("model").value, chart_width: chartWidth() }); }
 });
 $("replyForm").addEventListener("submit", (e) => { e.preventDefault(); sendReply($("reply").value.trim()); $("reply").value = ""; });
 </script>
