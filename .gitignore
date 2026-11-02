@@ -8,3 +8,4 @@ build/
 dist/
 data/sales.db
 bench/results/*/raw/
+docs/media/*.webm
