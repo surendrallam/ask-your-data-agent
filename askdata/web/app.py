@@ -75,7 +75,12 @@ def ask(req: AskRequest) -> dict:
         agent = get_agent()
     except MissingKeyError as e:
         raise HTTPException(503, str(e)) from None
-    result = agent.ask(req.question.strip(), config=req.model)
+    from askdata.ledger import BudgetExceeded
+
+    try:
+        result = agent.ask(req.question.strip(), config=req.model)
+    except BudgetExceeded as e:
+        raise HTTPException(402, str(e)) from None
     out = result.to_dict()
     out["model_label"] = MODELS[result.model_used].label if result.model_used else None
     return out
