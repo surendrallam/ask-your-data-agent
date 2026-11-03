@@ -34,14 +34,15 @@ class ModelSpec:
     long_rates: tuple[float, float, float, float] | None = None  # input, output, write, read
 
 
-# Anthropic list prices for the Claude API (USD per million tokens), checked 2 Nov 2026.
-# Cache writes are 1.25x input (5-minute TTL); cache reads are 0.1x input (0.05x on Opus 5.5).
+# Anthropic list prices for the Claude API (USD per million tokens), checked 3 Nov 2026.
+# Cache writes are 1.25x input (5-minute TTL); cache reads are 0.1x input (0.05x on Sonnet 5.5
+# and Opus 5.5). https://platform.claude.com/docs/en/about-claude/pricing
 MODELS: dict[str, ModelSpec] = {
     "haiku": ModelSpec(
         "haiku", "claude-haiku-5-5", "Claude Haiku 5.5", 0.10, 0.50, 0.125, 0.01, False,
         long_context_from=100_000, long_rates=(0.50, 2.50, 0.625, 0.05),
     ),
-    "sonnet": ModelSpec("sonnet", "claude-sonnet-5-5", "Claude Sonnet 5.5", 2.00, 10.00, 2.50, 0.20, True),
+    "sonnet": ModelSpec("sonnet", "claude-sonnet-5-5", "Claude Sonnet 5.5", 2.00, 10.00, 2.50, 0.10, True),
     "opus": ModelSpec("opus", "claude-opus-5-5", "Claude Opus 5.5", 4.00, 20.00, 5.00, 0.20, True),
 }
 

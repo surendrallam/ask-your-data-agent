@@ -164,12 +164,20 @@ def test_api_error_is_reported_not_raised():
 
 @pytest.mark.parametrize("key,expected", [
     ("haiku", (1000 * 0.10 + 200 * 0.50 + 4000 * 0.125 + 6000 * 0.01) / 1e6),
-    ("sonnet", (1000 * 2 + 200 * 10 + 4000 * 2.5 + 6000 * 0.2) / 1e6),
+    ("sonnet", (1000 * 2 + 200 * 10 + 4000 * 2.5 + 6000 * 0.1) / 1e6),
     ("opus", (1000 * 4 + 200 * 20 + 4000 * 5 + 6000 * 0.2) / 1e6),
 ])
 def test_cost_math(key, expected):
     usage = response(inp=1000, out=200, cw=4000, cr=6000).usage
     assert cost_of(MODELS[key], usage) == pytest.approx(expected)
+
+
+def test_cache_read_multipliers_match_the_pricing_page():
+    # Cache hits cost 0.05x input on Sonnet 5.5 and Opus 5.5, 0.1x on Haiku 5.5; writes 1.25x.
+    assert MODELS["sonnet"].cache_read == pytest.approx(0.05 * MODELS["sonnet"].input)
+    assert MODELS["opus"].cache_read == pytest.approx(0.05 * MODELS["opus"].input)
+    assert MODELS["haiku"].cache_read == pytest.approx(0.1 * MODELS["haiku"].input)
+    assert all(m.cache_write == pytest.approx(1.25 * m.input) for m in MODELS.values())
 
 
 def test_haiku_long_context_rate_card():
