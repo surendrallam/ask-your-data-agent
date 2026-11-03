@@ -20,6 +20,7 @@ from typing import Any
 import anthropic
 
 from askdata.config import DEFAULT_EFFORT, MODELS, ModelSpec, make_client
+from askdata.ledger import CostLedger, estimate_prompt_tokens, worst_case_usd
 from askdata.prompts import build_system_prompt, build_user_message
 from askdata.tools import TERMINAL_TOOLS, TOOLS, ToolSession
 
@@ -123,8 +124,14 @@ def _tool_result(tool_use_id: str, content: str, is_error: bool = False) -> dict
 
 class Agent:
     def __init__(self, client: Any = None, effort: str = DEFAULT_EFFORT, max_turns: int = 12,
-                 server_fallback: bool = True) -> None:
+                 server_fallback: bool = True, ledger: CostLedger | bool | None = None) -> None:
+        """ledger: a CostLedger, False for none, or None for the default: a ledger at
+        runs/costs.csv when the agent builds its own (real) client, none for an injected client."""
+        own_client = client is None
         self.client = client if client is not None else make_client()
+        if ledger is None:
+            ledger = CostLedger() if own_client else False
+        self.ledger: CostLedger | None = ledger or None
         self.effort = effort
         self.max_turns = max_turns
         self.server_fallback = server_fallback
@@ -159,6 +166,25 @@ class Agent:
 
     # ---------------------------------------------------------------- internals
     def _create(self, spec: ModelSpec, messages: list[dict]):
+        """One API call. With a ledger: reserve the worst case first, log the call when it returns."""
+        reserved = 0.0
+        if self.ledger is not None:
+            prompt = estimate_prompt_tokens(self.system, TOOLS, messages)
+            reserved = self.ledger.reserve(worst_case_usd(spec, prompt, MAX_TOKENS))
+        started = time.perf_counter()
+        try:
+            response = self._send(spec, messages)
+        except BaseException:
+            if self.ledger is not None:
+                self.ledger.release(reserved)
+            raise
+        if self.ledger is not None:
+            self.ledger.record(spec.model_id, response.usage, cost_of(spec, response.usage),
+                               (time.perf_counter() - started) * 1000, getattr(response, "stop_reason", None),
+                               reserved)
+        return response
+
+    def _send(self, spec: ModelSpec, messages: list[dict]):
         kwargs = dict(
             model=spec.model_id,
             max_tokens=MAX_TOKENS,

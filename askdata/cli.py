@@ -34,7 +34,13 @@ def cmd_ask(args: argparse.Namespace) -> int:
     except MissingKeyError as e:
         print(e, file=sys.stderr)
         return 2
-    r = agent.ask(args.question, config=args.model)
+    from askdata.ledger import BudgetExceeded
+
+    try:
+        r = agent.ask(args.question, config=args.model)
+    except BudgetExceeded as e:
+        print(e, file=sys.stderr)
+        return 3
     if args.json:
         print(json.dumps(r.to_dict(), indent=2, default=str))
         return 0 if r.status != "failed" else 1

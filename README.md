@@ -1,5 +1,7 @@
 # Ask your data
 
+[![CI](https://github.com/surendrallam/ask-your-data-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/surendrallam/ask-your-data-agent/actions/workflows/ci.yml)
+
 A Claude agent that answers plain-English business questions over a sales database. It writes read-only SQL, applies the company's metric definitions, asks a clarifying question when a request is ambiguous, and shows its work: the answer, the result table, a chart and the exact SQL.
 
 It ships with a **50-question benchmark** that compares Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 on accuracy, cost and latency, plus an auto mode that starts on Haiku and escalates to Sonnet only when a question proves hard.
@@ -20,6 +22,7 @@ A 75-second captioned demo is in [`docs/media/demo.mp4`](docs/media/demo.mp4).
 - **Prompt caching.** The tools, instructions, schema and core definitions form one cached prefix; the growing conversation is cached automatically.
 - **MCP server.** The same guarded tools work in Claude Desktop or any MCP client.
 - **Web UI and CLI.** A single-page UI (light and dark, phone and desktop) and an `askdata` command.
+- **Spend controls.** Every API call is logged to `runs/costs.csv` with its tokens, cost and latency. Before each call, its worst case is checked against a budget (`ASKDATA_BUDGET_USD`, default $85) and the call is refused if it could pass it.
 
 ## How it works
 
@@ -83,7 +86,7 @@ python -m bench.run --dry-run                                   # check the refe
 python -m bench.run --configs haiku,sonnet,opus,auto --budget 40
 ```
 
-The runner resumes where it stopped, stops at the budget, and writes `results.jsonl`, `summary.json` and `summary.md` to `bench/results/<date>/`.
+The runner resumes where it stopped and writes `results.jsonl`, `summary.json` and `summary.md` to `bench/results/<date>/`. `--budget` is enforced twice: no new question starts once it is reached, and no API call starts if its worst case could pass it. Every call is also logged to `runs/costs.csv`.
 
 ## Results
 
