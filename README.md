@@ -120,7 +120,7 @@ The same 50 questions, 3 runs each, at low and high effort (900 more runs, $8.43
 - **Clarification is the first thing to go when thinking is cut.** At low effort Sonnet 5.5 missed exactly one question: it stopped asking which "Apex" was meant.
 - **High effort lifts Haiku 5.5 to 98%** for 18% more cost. That is still about a tenth of what Sonnet costs at low effort.
 
-Raw results, per-question misses and summaries are in `bench/results/`; `python -m bench.report <tag>` prints the tables. All benchmark runs together cost $14.71.
+Raw results, per-question misses and summaries are in `bench/results/`; `python -m bench.report <tag>` prints the tables. All benchmark runs together cost $14.71. [`FIELD_NOTES.md`](FIELD_NOTES.md) adds cost per correct answer for every setting and how much to trust the numbers.
 
 Costs were corrected on 3 Nov 2026: the first version priced Sonnet 5.5 cache reads at $0.20 per million tokens instead of the listed $0.10, which overstated Sonnet's cost by about 13%. Every run stores its token counts, so `bench/reprice.py` applied the exact correction to the stored results; Haiku and Opus costs did not change.
 
