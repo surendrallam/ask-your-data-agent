@@ -1,7 +1,7 @@
 | Config | Effort | Accuracy (all) | Answer accuracy | Clarify accuracy | $ / question | Total $ | p50 latency | p90 latency | API calls / q | Escalated |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Haiku 5.5 | medium | 96.0% | 95.6% | 100.0% | $0.0007 | $0.03 | 4.7s | 7.2s | 2.0 | – |
-| Sonnet 5.5 | medium | 94.0% | 93.3% | 100.0% | $0.0110 | $0.55 | 4.8s | 6.4s | 2.0 | – |
+| Sonnet 5.5 | medium | 94.0% | 93.3% | 100.0% | $0.0099 | $0.49 | 4.8s | 6.4s | 2.0 | – |
 | Opus 5.5 | medium | 98.0% | 97.8% | 100.0% | $0.0224 | $1.12 | 6.8s | 11.1s | 2.1 | – |
 | Auto (Haiku → Sonnet) | medium | 94.0% | 95.6% | 80.0% | $0.0006 | $0.03 | 4.5s | 7.1s | 2.1 | 0.0% |
 

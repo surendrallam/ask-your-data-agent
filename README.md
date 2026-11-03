@@ -4,7 +4,7 @@ A Claude agent that answers plain-English business questions over a sales databa
 
 It ships with a **50-question benchmark** that compares Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 on accuracy, cost and latency, plus an auto mode that starts on Haiku and escalates to Sonnet only when a question proves hard.
 
-> **Results (2 Nov 2026, 3 runs of all 50 questions):** Sonnet 5.5 and Opus 5.5 answered every question correctly in all three runs. Haiku 5.5 scored 96.7% at about 1/14 of Sonnet's cost per question. Details in [Results](#results).
+> **Results (2 Nov 2026, 3 runs of all 50 questions):** Sonnet 5.5 and Opus 5.5 answered every question correctly in all three runs. Haiku 5.5 scored 96.7% at about 1/12 of Sonnet's cost per question. Details in [Results](#results).
 
 ![A ranked answer: one-line summary, bar chart, result table and the SQL behind it](docs/media/answer-1.png)
 
@@ -76,7 +76,7 @@ Trailhead Goods is a fictional online outdoor-gear retailer. `askdata/seed.py` g
 
 **Grading is by execution, not wording.** The SQL the agent cites is re-run and its rows are compared with the reference SQL's rows: counts must match exactly, money within 0.01%, and rates within 0.06 percentage points (as a fraction or a percentage). Extra columns are fine and order matters only where the question implies it. Asking a clarifying question on an answerable question counts as a miss. The grader's own tests show that common mistakes fail: counting cancelled orders, skipping refunds, using the calendar year instead of the fiscal year.
 
-Cost uses Anthropic's list prices (USD per million input / output tokens, checked 2 Nov 2026): Haiku 5.5 $0.10 / $0.50, Sonnet 5.5 $2 / $10, Opus 5.5 $4 / $20. Cache reads cost 0.1x input (0.05x on Opus 5.5) and cache writes 1.25x.
+Cost uses Anthropic's list prices (USD per million input / output tokens, checked 3 Nov 2026): Haiku 5.5 $0.10 / $0.50, Sonnet 5.5 $2 / $10, Opus 5.5 $4 / $20. Cache reads cost 0.1x input (0.05x on Sonnet 5.5 and Opus 5.5) and cache writes 1.25x.
 
 ```bash
 python -m bench.run --dry-run                                   # check the reference answers, no API calls
@@ -87,12 +87,12 @@ The runner resumes where it stopped, stops at the budget, and writes `results.js
 
 ## Results
 
-Run on 2 Nov 2026: all 50 questions, 3 runs each, adaptive thinking at medium effort, prompt v2. That makes 600 graded runs, which cost $4.59 in total.
+Run on 2 Nov 2026: all 50 questions, 3 runs each, adaptive thinking at medium effort, prompt v2. That makes 600 graded runs, which cost $4.40 in total.
 
 | Model | Accuracy (150 runs) | Right in all 3 runs | $ per question | $ per 1,000 questions | Median / p90 latency |
 |---|---|---|---|---|---|
 | Claude Haiku 5.5 | 96.7% | 47 of 50 | $0.0007 | $0.67 | 4.7 s / 7.4 s |
-| Claude Sonnet 5.5 | **100%** | 50 of 50 | $0.0096 | $9.57 | 4.5 s / 6.4 s |
+| Claude Sonnet 5.5 | **100%** | 50 of 50 | $0.0083 | $8.34 | 4.5 s / 6.4 s |
 | Claude Opus 5.5 | **100%** | 50 of 50 | $0.0197 | $19.70 | 7.2 s / 10.9 s |
 | Auto (Haiku first, Sonnet if needed) | 97.3% | 48 of 50 | $0.0006 | $0.64 | 4.2 s / 6.9 s |
 
@@ -105,19 +105,21 @@ What the runs showed:
 
 ### How much thinking each model needs
 
-The same 50 questions, 3 runs each, at low and high effort (900 more runs, $8.80). The medium column is run 2. Each cell shows accuracy · cost per question · median latency.
+The same 50 questions, 3 runs each, at low and high effort (900 more runs, $8.43). The medium column is run 2. Each cell shows accuracy · cost per question · median latency.
 
 | Model | Low | Medium | High |
 |---|---|---|---|
 | Claude Haiku 5.5 | 96.0% · $0.00055 · 4.2 s | 96.7% · $0.00067 · 4.7 s | 98.0% · $0.00079 · 5.2 s |
-| Claude Sonnet 5.5 | 98.0% · $0.0092 · 4.4 s | 100% · $0.0096 · 4.5 s | 100% · $0.0103 · 4.9 s |
+| Claude Sonnet 5.5 | 98.0% · $0.0080 · 4.4 s | 100% · $0.0083 · 4.5 s | 100% · $0.0090 · 4.9 s |
 | Claude Opus 5.5 | 100% · $0.0174 · 6.5 s | 100% · $0.0197 · 7.2 s | 100% · $0.0204 · 7.1 s |
 
 - **Opus 5.5 was perfect even at low effort**, which was also its cheapest and fastest setting.
 - **Clarification is the first thing to go when thinking is cut.** At low effort Sonnet 5.5 missed exactly one question: it stopped asking which "Apex" was meant.
-- **High effort lifts Haiku 5.5 to 98%** for 18% more cost. That is still about a twelfth of what Sonnet costs at low effort.
+- **High effort lifts Haiku 5.5 to 98%** for 18% more cost. That is still about a tenth of what Sonnet costs at low effort.
 
-Raw results, per-question misses and summaries are in `bench/results/`; `python -m bench.report <tag>` prints the tables. All benchmark runs together cost $15.32.
+Raw results, per-question misses and summaries are in `bench/results/`; `python -m bench.report <tag>` prints the tables. All benchmark runs together cost $14.71.
+
+Costs were corrected on 3 Nov 2026: the first version priced Sonnet 5.5 cache reads at $0.20 per million tokens instead of the listed $0.10, which overstated Sonnet's cost by about 13%. Every run stores its token counts, so `bench/reprice.py` applied the exact correction to the stored results; Haiku and Opus costs did not change.
 
 | Clarifying question | Governed metric |
 |---|---|
