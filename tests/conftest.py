@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+import socket
 from types import SimpleNamespace
 
 import pytest
@@ -54,3 +55,35 @@ class FakeClient:
 @pytest.fixture
 def fake():
     return FakeClient
+
+
+LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+
+
+@pytest.fixture(autouse=True)
+def _no_real_api(monkeypatch, tmp_path):
+    """No test can reach the Anthropic API or spend money.
+
+    Removes the API-key variables, points the cost ledger at a temp file and
+    refuses every network connection except to this machine (the SDK round-trip
+    test talks to a fake API on 127.0.0.1).
+    """
+    for var in ("ASKDATA_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setenv("ASKDATA_COSTS_CSV", str(tmp_path / "costs.csv"))
+    real_connect, real_connect_ex = socket.socket.connect, socket.socket.connect_ex
+
+    def check(sock, address):
+        if sock.family in (socket.AF_INET, socket.AF_INET6) and address[0] not in LOOPBACK:
+            raise RuntimeError(f"tests may not open network connections (attempted {address!r})")
+
+    def connect(self, address):
+        check(self, address)
+        return real_connect(self, address)
+
+    def connect_ex(self, address):
+        check(self, address)
+        return real_connect_ex(self, address)
+
+    monkeypatch.setattr(socket.socket, "connect", connect)
+    monkeypatch.setattr(socket.socket, "connect_ex", connect_ex)

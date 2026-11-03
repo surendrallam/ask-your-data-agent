@@ -22,6 +22,8 @@ uv venv .venv && uv pip install --python .venv/bin/python -e ".[dev]"
 .venv/bin/python -m bench.run --dry-run | tail -1      # expect: 50 questions, 0 problems
 ```
 
+Every API call is appended to `runs/costs.csv` (model, tokens, cost, latency, running total). `ASKDATA_BUDGET_USD` caps the total in that file (default $85); `--budget` caps each run. A call whose worst case could pass either is refused before it is sent.
+
 ## 2. Smoke test (about $0.50, 2-3 minutes)
 
 ```bash
@@ -55,7 +57,7 @@ In order of value:
 
 1. Copy the first table from `bench/results/<tag>/summary.md` into the README's results section with one line on the method and the date.
 2. Read the misses in `results.jsonl` (`passed: false`) and summarize the patterns in two or three bullets.
-3. Commit `bench/results/<tag>/` (results.jsonl, summary.json, summary.md).
+3. Commit `bench/results/<tag>/` (results.jsonl, summary.json, summary.md) and `runs/costs.csv`.
 
 ## 6. Demo video and README screenshots (about $0.10)
 

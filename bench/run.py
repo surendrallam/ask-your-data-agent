@@ -162,6 +162,7 @@ def main(argv: list[str] | None = None) -> int:
 
     from askdata.agent import Agent
     from askdata.config import MissingKeyError, make_client
+    from askdata.ledger import BudgetExceeded, CostLedger
 
     configs = [c.strip() for c in args.configs.split(",") if c.strip()]
     efforts = [e.strip() for e in args.effort.split(",") if e.strip()]
@@ -185,12 +186,23 @@ def main(argv: list[str] | None = None) -> int:
     lock = threading.Lock()
     stop = threading.Event()
     print(f"Writing to {results_path} ({len(done)} runs already there, ${spent:.2f} spent so far)")
+    # Hard stop: no API call may start if its worst case could pass this run's remaining budget
+    # (or the ledger's total budget). The soft stop below only stops starting new questions.
+    ledger = CostLedger(run_budget_usd=max(0.0, args.budget - spent))
+    print(f"Logging every API call to {ledger.path} (${ledger.total_usd:.2f} logged so far, "
+          f"total budget ${ledger.budget_usd:.2f})")
 
     def run_one(agent: Agent, q: dict, config: str, effort: str, rep: int) -> None:
         nonlocal spent
         if stop.is_set():
             return
-        r = agent.ask(q["question"], config=config)
+        try:
+            with ledger.labelled(f"{args.tag}/{q['id']}/{config}/{effort}/r{rep}"):
+                r = agent.ask(q["question"], config=config)
+        except BudgetExceeded as e:
+            stop.set()
+            print(f"Stopped before an API call: {e}", flush=True)
+            return
         rec = record(q, config, effort, rep, r)
         with lock:
             with results_path.open("a") as f:
@@ -208,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
     started = time.time()
     for effort in efforts:
         for config in configs:
-            agent = Agent(client=client, effort=effort)
+            agent = Agent(client=client, effort=effort, ledger=ledger)
             todo = [(q, rep) for rep in range(1, args.repeat + 1) for q in questions
                     if (q["id"], config, effort, rep) not in finished]
             if not todo or stop.is_set():
